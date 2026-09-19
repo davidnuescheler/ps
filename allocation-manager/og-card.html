@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>OG — Allocation Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; }
+    .card {
+      width: 1200px;
+      height: 630px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 72px;
+      background:
+        radial-gradient(ellipse 70% 50% at 8% -8%, rgba(122, 36, 54, 0.16), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 100% 0%, rgba(201, 160, 122, 0.28), transparent 50%),
+        #f4eee6;
+      color: #161210;
+      font-family: Outfit, sans-serif;
+    }
+    .mark {
+      width: 168px;
+      height: 266px;
+      background: #161210;
+      -webkit-mask: url("../icons/mark.svg") center / contain no-repeat;
+      mask: url("../icons/mark.svg") center / contain no-repeat;
+    }
+    .copy { max-width: 640px; }
+    h1 {
+      margin: 0;
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 300;
+      font-size: 92px;
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+    }
+    .kicker {
+      display: block;
+      margin-top: 1.15rem;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #7a2436;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="mark" aria-hidden="true"></div>
+    <div class="copy">
+      <h1>Public<br>Sediments</h1>
+      <span class="kicker">Allocation manager</span>
+    </div>
+  </div>
+</body>
+</html>
