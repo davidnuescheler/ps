@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Allocation Manager — Public Sediments</title>
+  <link rel="icon" href="../icons/mark.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-bar">
+      <a class="brand" href="../index.html">
+        <span class="icon-mark" aria-hidden="true"></span>
+        <span>
+          <span class="brand-name">Public Sediments</span>
+          <span class="brand-sub">Allocation manager</span>
+        </span>
+      </a>
+      <div class="header-tools">
+        <span class="sync" id="sync" title="Sync status"></span>
+        <button class="ghost" id="refreshBtn" title="Reload from sheet-logger" aria-label="Reload">↻</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="toolbar">
+      <div class="month-nav">
+        <button class="ghost" id="prevMonth" aria-label="Previous month">←</button>
+        <h1 id="monthLabel">September 2026</h1>
+        <button class="ghost" id="nextMonth" aria-label="Next month">→</button>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <nav class="producer-nav" id="producerNav" aria-label="Producers"></nav>
+
+    <section class="board" id="board">
+      <div class="loading">Loading allocations…</div>
+    </section>
+
+    <div class="row-actions">
+      <button class="btn btn-solid" id="addWineBtn">Add wine</button>
+      <button class="btn" id="addCustomerBtn">Add customer</button>
+      <button class="btn" id="showEmptyBtn" aria-pressed="false">Show empty accounts</button>
+    </div>
+
+    <div class="manage">
+      <section class="panel">
+        <h2>Producers</h2>
+        <p class="muted">Stable book. Wines and monthly allotments sit underneath.</p>
+        <div class="list" id="producerList"></div>
+        <div class="row-actions">
+          <button class="btn" id="addProducerBtn">Add producer</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Customers</h2>
+        <p class="muted">Restaurants and shops that receive cases this month.</p>
+        <div class="list" id="customerList"></div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="wineDialog">
+    <h2>Add wine</h2>
+    <form class="form" id="wineForm">
+      <div>
+        <label for="wineProducer">Producer</label>
+        <select id="wineProducer" required></select>
+      </div>
+      <div>
+        <label for="wineName">Wine</label>
+        <input id="wineName" required>
+      </div>
+      <div class="form-row">
+        <div>
+          <label for="wineVintage">Vintage</label>
+          <input id="wineVintage">
+        </div>
+        <div>
+          <label for="wineColor">Color</label>
+          <select id="wineColor">
+            <option value="red">Red</option>
+            <option value="white">White</option>
+            <option value="skin">Skin contact</option>
+            <option value="sparkling">Sparkling</option>
+            <option value="rose">Rosé</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label for="wineAppellation">Appellation</label>
+          <input id="wineAppellation">
+        </div>
+        <div>
+          <label for="wineFormat">Format</label>
+          <input id="wineFormat" placeholder="750ml or magnum">
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label for="wineCases">Cases this month</label>
+          <input id="wineCases" type="number" min="0" step="0.001" value="1">
+        </div>
+        <div>
+          <label for="wineWholesale">Wholesale / retail</label>
+          <input id="wineWholesale" placeholder="294">
+        </div>
+      </div>
+      <div>
+        <label for="wineRetail">Retail</label>
+        <input id="wineRetail" type="number" min="0" step="1" placeholder="318">
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="wineCancel">Cancel</button>
+        <button class="btn btn-solid" type="submit">Save wine</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="customerDialog">
+    <h2>Add customer</h2>
+    <form class="form" id="customerForm">
+      <div>
+        <label for="customerName">Name</label>
+        <input id="customerName" required>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="customerCancel">Cancel</button>
+        <button class="btn btn-solid" type="submit">Save customer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="producerDialog">
+    <h2>Add producer</h2>
+    <form class="form" id="producerForm">
+      <div>
+        <label for="producerName">Name</label>
+        <input id="producerName" required>
+      </div>
+      <div class="form-row">
+        <div>
+          <label for="producerRegion">Region</label>
+          <input id="producerRegion">
+        </div>
+        <div>
+          <label for="producerColor">Color</label>
+          <input id="producerColor" type="color" value="#7a2436">
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="producerCancel">Cancel</button>
+        <button class="btn btn-solid" type="submit">Save producer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="./scripts.js"></script>
+</body>
+</html>

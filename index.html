@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Public Sediments — Natural Wine Dealer</title>
+  <meta name="description" content="Public Sediments is an independent dealer of low-intervention natural wines. Living soils, native ferments, nothing added that was not already in the vineyard.">
+  <link rel="icon" href="icons/mark.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f4eee6;
+      --paper-2: #ebe3d6;
+      --foam: #faf7f2;
+      --ink: #161210;
+      --ink-soft: #3c342e;
+      --muted: #7a7168;
+      --line: rgba(22, 18, 16, 0.12);
+      --wine: #7a2436;
+      --wine-deep: #4a1420;
+      --clay: #c9a07a;
+      --clay-deep: #9a6a42;
+      --moss: #44513d;
+      --moss-soft: #6d7b63;
+      --shadow: 0 28px 60px -32px rgba(74, 20, 32, 0.42);
+      --radius: 1.35rem;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+      --sans: "Outfit", "Avenir Next", system-ui, sans-serif;
+      --header: 4.25rem;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; }
+    body {
+      font-family: var(--sans);
+      font-weight: 400;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+      letter-spacing: 0.01em;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 8;
+      opacity: 0.045;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      mix-blend-mode: multiply;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 8% -8%, rgba(122, 36, 54, 0.16), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 100% 0%, rgba(201, 160, 122, 0.28), transparent 50%),
+        radial-gradient(ellipse 45% 35% at 80% 100%, rgba(68, 81, 61, 0.12), transparent 55%),
+        radial-gradient(ellipse 30% 20% at 0% 70%, rgba(122, 36, 54, 0.07), transparent 50%);
+      animation: aurora 22s var(--ease) infinite alternate;
+    }
+
+    @keyframes aurora {
+      from { transform: scale(1) translate3d(0, 0, 0); }
+      to { transform: scale(1.08) translate3d(-2%, 1.5%, 0); }
+    }
+
+    img { max-width: 100%; display: block; }
+    a { color: inherit; }
+    button, input { font: inherit; }
+    h1, h2, h3, .serif { font-family: var(--serif); font-weight: 500; letter-spacing: -0.03em; line-height: 1.08; }
+
+    .skip {
+      position: absolute;
+      left: 1rem;
+      top: -4rem;
+      background: var(--ink);
+      color: var(--foam);
+      padding: 0.6rem 1rem;
+      z-index: 20;
+      border-radius: 999px;
+    }
+    .skip:focus { top: 1rem; }
+
+    .wrap {
+      width: min(1180px, calc(100% - 2.5rem));
+      margin-inline: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .icon {
+      display: inline-block;
+      background: currentColor;
+      width: 1em;
+      height: 1em;
+    }
+    .icon-mark {
+      -webkit-mask: url("icons/mark.svg") center / contain no-repeat;
+      mask: url("icons/mark.svg") center / contain no-repeat;
+    }
+    .icon-heart {
+      -webkit-mask: url("icons/heart.svg") center / contain no-repeat;
+      mask: url("icons/heart.svg") center / contain no-repeat;
+    }
+
+    header.site {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      height: var(--header);
+      display: flex;
+      align-items: center;
+      backdrop-filter: blur(16px);
+      background: color-mix(in srgb, var(--paper) 78%, transparent);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.4s var(--ease), background 0.4s;
+    }
+    header.site.is-scrolled {
+      border-bottom-color: var(--line);
+      background: color-mix(in srgb, var(--paper) 90%, transparent);
+    }
+    .nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      width: min(1180px, calc(100% - 2.5rem));
+      margin-inline: auto;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      text-decoration: none;
+    }
+    .brand .icon-mark { width: 18px; height: 30px; }
+    .brand-name {
+      font-family: var(--serif);
+      font-size: 1.05rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.6rem;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .nav-links a {
+      text-decoration: none;
+      font-size: 0.92rem;
+      position: relative;
+    }
+    .nav-links a::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -4px;
+      height: 1px;
+      background: var(--wine);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s var(--ease);
+    }
+    .nav-links a:hover::after, .nav-links a:focus-visible::after { transform: scaleX(1); }
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid var(--ink);
+      padding: 0.55rem 0.9rem;
+      border-radius: 999px;
+      transition: background 0.3s, color 0.3s;
+    }
+    .nav-cta .icon-heart { width: 13px; height: 15px; }
+    .nav-cta:hover { background: var(--ink); color: var(--foam); }
+
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: 0;
+      padding: 0.4rem;
+      cursor: pointer;
+    }
+    .menu-toggle span {
+      display: block;
+      width: 22px;
+      height: 1.5px;
+      background: var(--ink);
+      margin: 5px 0;
+      transition: 0.3s var(--ease);
+    }
+    body.nav-open .menu-toggle span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    body.nav-open .menu-toggle span:nth-child(2) { opacity: 0; }
+    body.nav-open .menu-toggle span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      padding: 2.2rem 0 4.5rem;
+      min-height: calc(100svh - var(--header));
+      display: grid;
+      align-items: center;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 3rem;
+      align-items: center;
+    }
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.72rem;
+      color: var(--wine);
+      font-weight: 500;
+    }
+    .kicker::before {
+      content: "";
+      width: 1.6rem;
+      height: 1px;
+      background: currentColor;
+    }
+    .hero h1 {
+      font-size: clamp(3.1rem, 7vw, 6.4rem);
+      margin: 0.6rem 0 1.1rem;
+      font-weight: 300;
+      max-width: 11ch;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--wine);
+    }
+    .lede {
+      font-size: 1.12rem;
+      max-width: 38ch;
+      color: var(--ink-soft);
+      margin: 0 0 1.8rem;
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 0.85rem 1.25rem;
+      border: 1px solid var(--ink);
+      transition: transform 0.35s var(--ease), background 0.35s, color 0.35s, border-color 0.35s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-solid { background: var(--ink); color: var(--foam); }
+    .btn-solid:hover { background: var(--wine-deep); border-color: var(--wine-deep); }
+    .btn-ghost:hover { background: var(--ink); color: var(--foam); }
+
+    .hero-mark {
+      display: grid;
+      place-items: center;
+      position: relative;
+      min-height: 420px;
+    }
+    .hero-mark .glow {
+      position: absolute;
+      width: 70%;
+      height: 70%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(122, 36, 54, 0.22), transparent 68%);
+      filter: blur(12px);
+      animation: pulse 6s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.12); opacity: 1; }
+    }
+    .hero-mark svg {
+      width: min(280px, 58vw);
+      height: auto;
+      color: var(--ink);
+      position: relative;
+      animation: float 7.5s ease-in-out 1.5s infinite;
+      filter: drop-shadow(0 24px 30px rgba(22, 18, 16, 0.12));
+    }
+    .hero-mark .stone {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: settle 1.15s var(--ease) both;
+    }
+    .hero-mark .stone-1 { animation-delay: 0.08s; }
+    .hero-mark .stone-2 { animation-delay: 0.22s; }
+    .hero-mark .stone-3 { animation-delay: 0.38s; }
+    .hero-mark .stone-4 { animation-delay: 0.54s; }
+    @keyframes settle {
+      from { opacity: 0; transform: translateY(-42px) scale(0.96); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    .marquee {
+      position: relative;
+      z-index: 1;
+      border-block: 1px solid var(--line);
+      overflow: hidden;
+      padding: 0.85rem 0;
+      background: color-mix(in srgb, var(--paper-2) 65%, transparent);
+    }
+    .marquee-track {
+      display: flex;
+      gap: 2.4rem;
+      width: max-content;
+      animation: ticker 32s linear infinite;
+      font-size: 0.82rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+    .marquee-track span { white-space: nowrap; }
+    .dot { opacity: 0.45; }
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    section { position: relative; z-index: 1; padding: 5.5rem 0; scroll-margin-top: calc(var(--header) - 8px); }
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1.5rem;
+      margin-bottom: 2.4rem;
+    }
+    .section-head h2 { font-size: clamp(2.1rem, 4vw, 3.4rem); margin: 0.35rem 0 0; font-weight: 300; }
+    .section-head p { margin: 0; color: var(--muted); max-width: 36ch; }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 3rem;
+      align-items: center;
+    }
+    .about-copy p { font-size: 1.08rem; color: var(--ink-soft); }
+    .about-copy p.lead {
+      font-family: var(--serif);
+      font-size: clamp(1.6rem, 2.6vw, 2.15rem);
+      line-height: 1.25;
+      color: var(--ink);
+      font-weight: 300;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    .stat {
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+    }
+    .stat b {
+      display: block;
+      font-family: var(--serif);
+      font-size: 1.8rem;
+      font-weight: 400;
+    }
+    .stat span { color: var(--muted); font-size: 0.85rem; }
+    .frame {
+      position: relative;
+      border-radius: calc(var(--radius) + 0.4rem);
+      overflow: hidden;
+      aspect-ratio: 4 / 5;
+      box-shadow: var(--shadow);
+    }
+    .frame img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.04); transition: transform 1.4s var(--ease); }
+    .frame:hover img { transform: scale(1.1); }
+    .frame-caption {
+      position: absolute;
+      left: 1rem; right: 1rem; bottom: 1rem;
+      color: var(--foam);
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.6rem;
+    }
+    .chip {
+      border: 1px solid var(--line);
+      background: transparent;
+      border-radius: 999px;
+      padding: 0.45rem 0.9rem;
+      cursor: pointer;
+      color: var(--ink-soft);
+      transition: 0.3s var(--ease);
+    }
+    .chip:hover { border-color: var(--ink); color: var(--ink); }
+    .chip[aria-pressed="true"] {
+      background: var(--ink);
+      color: var(--foam);
+      border-color: var(--ink);
+    }
+    .chip:focus-visible { outline: 2px solid var(--wine); outline-offset: 3px; }
+
+    .wine-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+    .wine {
+      background: color-mix(in srgb, var(--foam) 80%, transparent);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      transition: transform 0.4s var(--ease), box-shadow 0.4s;
+    }
+    .wine:hover { transform: translateY(-6px); box-shadow: var(--shadow); }
+    .wine.is-hidden { display: none; }
+    .swatch {
+      height: 140px;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .swatch::after {
+      content: "";
+      position: absolute;
+      inset: auto 18% -30% 18%;
+      height: 80%;
+      border-radius: 999px 999px 40px 40px;
+      background: rgba(255,255,255,0.18);
+      filter: blur(1px);
+    }
+    .wine-meta { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .wine h3 { margin: 0.35rem 0 0.2rem; font-size: 1.35rem; font-weight: 500; }
+    .wine .producer { margin: 0 0 0.7rem; color: var(--ink-soft); }
+    .wine p { margin: 0 0 1rem; color: var(--muted); font-size: 0.95rem; flex: 1; }
+    .wine-foot { display: flex; justify-content: space-between; align-items: center; }
+    .price { font-family: var(--serif); font-size: 1.25rem; }
+    .inquire {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-bottom: 1px solid currentColor;
+      padding-bottom: 2px;
+    }
+
+    .standards {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    .accordion { display: grid; gap: 0.6rem; }
+    details.std {
+      border-radius: var(--radius);
+      background: color-mix(in srgb, var(--foam) 70%, transparent);
+      border: 1px solid var(--line);
+      padding: 0.2rem 1.1rem 0.2rem;
+      overflow: hidden;
+    }
+    details.std summary {
+      cursor: pointer;
+      list-style: none;
+      font-family: var(--serif);
+      font-size: 1.35rem;
+      padding: 1rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    details.std summary::-webkit-details-marker { display: none; }
+    details.std summary::after {
+      content: "";
+      width: 12px; height: 12px;
+      border-right: 1.5px solid var(--ink);
+      border-bottom: 1.5px solid var(--ink);
+      transform: rotate(45deg);
+      transition: transform 0.3s var(--ease);
+      margin-right: 4px;
+    }
+    details.std[open] summary::after { transform: rotate(225deg); }
+    details.std p { margin: 0 0 1.1rem; color: var(--ink-soft); max-width: 52ch; }
+    .std-visual {
+      border-radius: calc(var(--radius) + 0.3rem);
+      min-height: 420px;
+      background:
+        linear-gradient(180deg, rgba(22,18,16,0.08), rgba(22,18,16,0.35)),
+        url("https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=1400&q=80") center / cover;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: end;
+      padding: 1.5rem;
+      color: var(--foam);
+    }
+    .std-visual span { font-family: var(--serif); font-size: 1.8rem; font-weight: 300; max-width: 16ch; }
+
+    .allocation {
+      background: linear-gradient(160deg, var(--wine-deep), #2a0e16 45%, var(--moss) 140%);
+      color: var(--foam);
+      border-radius: 2rem;
+      padding: clamp(1.8rem, 4vw, 3.4rem);
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 2rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .allocation::before {
+      content: "";
+      position: absolute;
+      width: 50%;
+      height: 120%;
+      right: -10%;
+      top: -10%;
+      background: radial-gradient(circle, rgba(201,160,122,0.28), transparent 60%);
+      animation: pulse 8s ease-in-out infinite;
+    }
+    .allocation > * { position: relative; }
+    .allocation h2 { font-size: clamp(2.2rem, 4vw, 3.6rem); font-weight: 300; margin: 0.3rem 0 0.8rem; }
+    .allocation p { color: rgba(250,247,242,0.82); max-width: 42ch; }
+    .alloc-card {
+      background: rgba(250, 247, 242, 0.08);
+      border: 1px solid rgba(250,247,242,0.16);
+      border-radius: 1.3rem;
+      padding: 1.4rem;
+      backdrop-filter: blur(10px);
+    }
+    .alloc-card ol { margin: 0; padding-left: 1.1rem; color: rgba(250,247,242,0.88); }
+    .alloc-card li + li { margin-top: 0.65rem; }
+    .allocation .btn-solid { background: var(--foam); color: var(--ink); border-color: var(--foam); }
+    .allocation .btn-solid:hover { background: var(--clay); border-color: var(--clay); }
+
+    .grower-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .grower-card {
+      padding: 1.3rem 1.2rem 1.2rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--foam) 55%, transparent);
+      transition: 0.35s var(--ease);
+    }
+    .grower-card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--wine) 40%, var(--line)); }
+    .grower-card .place { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--wine); }
+    .grower-card h3 { margin: 0.25rem 0 0.5rem; font-size: 1.4rem; }
+    .grower-card p { margin: 0; color: var(--muted); }
+
+    .visit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+    }
+    .visit-card {
+      background: var(--foam);
+      border-radius: calc(var(--radius) + 0.2rem);
+      border: 1px solid var(--line);
+      padding: 1.6rem;
+    }
+    form { display: grid; gap: 0.8rem; }
+    label { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    input, textarea {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      padding: 0.7rem 0;
+      color: var(--ink);
+      outline: none;
+    }
+    input:focus, textarea:focus { border-bottom-color: var(--wine); }
+    .form-note { font-size: 0.9rem; color: var(--moss); min-height: 1.2em; }
+
+    footer.site {
+      position: relative;
+      z-index: 1;
+      background: var(--ink);
+      color: var(--foam);
+      padding: 3.5rem 0 1.5rem;
+      margin-top: 2rem;
+    }
+    .foot-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr 1fr;
+      gap: 2rem;
+      padding-bottom: 2.5rem;
+      border-bottom: 1px solid rgba(250,247,242,0.12);
+    }
+    .foot-brand { display: flex; gap: 0.8rem; align-items: start; }
+    .foot-brand .icon-mark { width: 28px; height: 46px; color: var(--clay); margin-top: 4px; }
+    footer a { text-decoration: none; color: rgba(250,247,242,0.78); }
+    footer a:hover { color: var(--clay); }
+    .foot-links { display: grid; gap: 0.4rem; }
+    .legal {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      padding-top: 1.2rem;
+      color: rgba(250,247,242,0.5);
+      font-size: 0.82rem;
+    }
+    .legal-heart { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .legal-heart .icon-heart { width: 12px; height: 14px; color: #e8a0ae; }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      animation: reveal 0.9s var(--ease) forwards;
+      animation-play-state: paused;
+    }
+    .reveal.is-in { animation-play-state: running; }
+    @keyframes reveal { to { opacity: 1; transform: none; } }
+
+    @media (max-width: 980px) {
+      .hero-grid, .about-grid, .standards, .allocation, .visit-grid, .foot-grid { grid-template-columns: 1fr; }
+      .wine-grid { grid-template-columns: repeat(2, 1fr); }
+      .grower-grid { grid-template-columns: 1fr 1fr; }
+      .hero-mark { min-height: 280px; order: -1; }
+      .nav-cta { display: none; }
+    }
+    @media (max-width: 760px) {
+      .menu-toggle { display: block; }
+      .nav-links, header.site .nav-cta {
+        display: none;
+      }
+      body.nav-open .nav-links {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        inset: var(--header) 0 0 0;
+        background: var(--foam);
+        padding: 2rem 1.4rem;
+        gap: 1.2rem;
+        z-index: 20;
+        font-family: var(--serif);
+        font-size: 2rem;
+      }
+      body.nav-open { overflow: hidden; }
+      body.nav-open::before { opacity: 0; }
+      body.nav-open header.site { z-index: 22; }
+      .wine-grid, .grower-grid, .stats { grid-template-columns: 1fr; }
+      .section-head { flex-direction: column; align-items: start; }
+      section { padding: 3.6rem 0; }
+      .hero { padding-top: 1rem; min-height: auto; }
+      .hero-mark { min-height: 200px; }
+      .hero-mark svg { width: min(150px, 40vw); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site" id="top">
+    <div class="nav-bar">
+      <a class="brand" href="#top">
+        <span class="icon icon-mark" aria-hidden="true"></span>
+        <span class="brand-name">Public Sediments</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#wines">Wines</a></li>
+          <li><a href="#standards">Standards</a></li>
+          <li><a href="#allocation">Allocation</a></li>
+          <li><a href="#growers">Growers</a></li>
+          <li><a href="#visit">Visit</a></li>
+        </ul>
+      </nav>
+      <a class="nav-cta" href="#allocation"><span class="icon icon-heart" aria-hidden="true"></span> Join the strata</a>
+      <button class="menu-toggle" aria-expanded="false" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="kicker">Independent natural wine dealer</p>
+          <h1>Wines with a sense of <em>ground.</em></h1>
+          <p class="lede">Low-intervention bottles from growers who farm living soils and bottle with as little between the vineyard and the glass as possible. Native yeast. No makeup. Sediment welcome.</p>
+          <div class="hero-actions">
+            <a class="btn btn-solid" href="#wines">See the current list</a>
+            <a class="btn btn-ghost" href="#allocation">Join the allocation</a>
+          </div>
+        </div>
+        <div class="hero-mark" aria-hidden="true">
+          <div class="glow"></div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 597.19 945.49" fill="none">
+<path class="stone stone-1" fill="currentColor" d="M 191.38 39.17 C 174.59 57.36 166.44 82.4 167.16 107.01 C 169.05 133.97 177.07 154.98 197.38 173.17 C 224.51 196.14 261.29 197.36 295.14 195.62 C 296.32 195.56 297.5 195.5 298.71 195.44 C 302.5 195.25 306.28 195.06 310.07 194.86 C 311.36 194.79 312.65 194.72 313.99 194.65 C 406.42 189.78 406.42 189.78 427.65 167.82 C 450.37 141.44 458.86 111.1 463.19 77.23 C 463.32 76.27 463.44 75.31 463.57 74.31 C 466.01 53.73 466.01 53.73 460.89 45.88 C 441.82 22.19 389.45 21.19 361.11 18.11 C 225.9 4.0 225.9 4.0 191.38 39.17 Z"/>
+  <path class="stone stone-2" fill="currentColor" d="M 94.88 258.48 C 94.5 258.56 94.5 258.56 92.56 258.97 C 62.5 265.27 62.5 265.27 55.48 274.21 C 48.51 286.59 51.38 302.06 54.38 315.17 C 58.21 328.35 64.53 339.78 76.38 347.17 C 97.88 357.8 124.28 353.3 147.44 351.11 C 149.97 350.88 152.5 350.65 155.04 350.42 C 162.48 349.75 169.93 349.06 177.37 348.36 C 187.34 347.42 197.32 346.5 207.29 345.58 C 210.26 345.3 213.22 345.03 216.19 344.75 C 252.08 341.42 287.99 338.29 323.89 335.16 C 327.99 334.8 332.09 334.45 336.19 334.09 C 367.65 331.35 399.11 328.6 430.58 325.95 C 433.92 325.66 437.27 325.38 440.61 325.1 C 442.73 324.92 444.85 324.74 446.98 324.56 C 447.99 324.47 449.01 324.38 450.06 324.3 C 454.92 323.88 459.78 323.47 464.64 323.07 C 524.96 318.08 524.96 318.08 535.38 306.17 C 544.29 292.36 540.09 275.12 537.5 259.94 C 537.0 257.02 536.52 254.09 536.04 251.16 C 535.73 249.29 535.42 247.41 535.11 245.54 C 534.96 244.67 534.82 243.8 534.67 242.91 C 532.91 232.65 532.91 232.65 529.13 228.98 C 522.24 224.44 514.0 224.14 506.0 223.17 C 505.65 223.13 505.65 223.13 503.85 222.91 C 407.15 211.28 309.69 225.07 94.88 258.48 Z"/>
+  <path class="stone stone-3" fill="currentColor" d="M 144.38 388.17 C 143.67 388.33 142.97 388.49 142.24 388.65 C 115.98 394.58 91.06 403.03 66.43 413.85 C 63.5 415.12 60.56 416.34 57.61 417.55 C 42.58 423.74 28.94 430.43 17.38 442.17 C 16.8 442.74 16.21 443.31 15.61 443.9 C 5.24 454.91 4.0 469.4 4.07 483.79 C 4.07 485.06 4.08 486.33 4.08 487.64 C 4.29 505.78 6.75 523.63 11.38 541.17 C 11.56 541.87 11.75 542.57 11.93 543.29 C 19.43 571.29 40.91 589.73 64.38 605.17 C 63.56 605.78 62.74 606.38 61.89 607.01 C 46.26 618.66 33.22 631.3 29.85 651.33 C 27.73 671.15 34.25 691.42 46.0 707.29 C 59.23 723.16 80.97 733.49 101.32 735.79 C 103.0 735.93 104.69 736.06 106.38 736.17 C 106.72 736.2 106.72 736.2 108.45 736.33 C 127.28 737.12 146.69 729.03 163.38 721.17 C 164.07 720.85 164.76 720.52 165.48 720.19 C 173.96 716.18 181.96 711.98 189.38 706.17 C 190.06 705.66 190.74 705.16 191.45 704.63 C 204.8 694.0 212.85 676.46 215.07 659.79 C 215.19 658.25 215.3 656.71 215.38 655.17 C 215.41 654.68 215.41 654.68 215.58 652.18 C 215.95 641.76 214.02 631.47 207.38 623.17 C 209.26 621.29 212.4 621.55 214.92 621.22 C 215.61 621.13 216.3 621.04 217.01 620.95 C 219.34 620.65 221.68 620.35 224.01 620.05 C 225.68 619.84 227.35 619.62 229.01 619.41 C 232.62 618.94 236.22 618.48 239.82 618.02 C 244.57 617.42 249.32 616.8 254.06 616.19 C 274.26 613.58 294.45 611.03 314.66 608.54 C 317.64 608.17 320.61 607.8 323.59 607.43 C 324.56 607.31 325.53 607.19 326.53 607.07 C 328.47 606.83 330.4 606.59 332.34 606.35 C 337.05 605.77 341.75 605.19 346.46 604.62 C 414.15 596.46 414.15 596.46 441.38 573.17 C 441.66 572.95 441.66 572.95 443.08 571.84 C 447.43 568.42 450.86 564.41 454.38 560.17 C 454.59 559.92 454.59 559.92 455.67 558.65 C 466.46 545.87 475.78 532.15 483.0 517.05 C 483.32 516.38 483.64 515.72 483.97 515.04 C 493.42 494.35 491.47 465.62 484.76 444.42 C 476.88 424.89 460.24 408.5 445.26 394.17 C 444.72 393.64 444.18 393.11 443.63 392.57 C 436.18 385.6 426.8 382.35 417.26 379.23 C 416.21 378.89 415.17 378.55 414.1 378.2 C 326.52 350.05 232.05 368.45 144.38 388.17 Z"/>
+  <path class="stone stone-4" fill="currentColor" d="M 248.38 662.17 C 247.54 662.87 246.7 663.56 245.84 664.28 C 232.63 675.53 221.28 690.91 218.93 708.54 C 217.77 725.56 217.76 743.0 226.38 758.17 C 225.83 758.34 225.28 758.51 224.71 758.69 C 219.24 760.46 214.04 762.54 208.83 764.97 C 208.05 765.33 207.27 765.69 206.47 766.06 C 204.83 766.81 203.19 767.57 201.55 768.33 C 199.09 769.47 196.62 770.61 194.15 771.75 C 159.69 787.63 159.69 787.63 153.56 803.26 C 151.16 810.29 150.92 816.92 151.0 824.29 C 151.01 825.52 151.02 826.74 151.03 828.0 C 151.5 856.58 155.5 885.35 175.38 907.17 C 175.99 907.88 176.61 908.58 177.24 909.31 C 201.59 935.74 243.67 935.6 277.05 938.93 C 278.66 939.1 280.26 939.27 281.87 939.44 C 298.17 941.18 314.38 941.49 330.76 941.43 C 333.04 941.42 335.33 941.41 337.61 941.41 C 351.2 941.38 364.79 941.28 378.38 941.17 C 379.72 941.16 381.05 941.15 382.39 941.14 C 400.96 940.99 419.53 940.81 438.1 940.59 C 439.71 940.57 441.32 940.55 442.93 940.53 C 443.72 940.52 444.52 940.51 445.34 940.5 C 450.95 940.44 456.56 940.38 462.17 940.33 C 469.11 940.26 476.05 940.18 482.99 940.08 C 486.59 940.03 490.19 939.99 493.78 939.96 C 524.35 939.72 547.74 934.76 570.06 912.5 C 571.62 910.8 572.99 909.01 574.38 907.17 C 575.05 906.41 575.72 905.65 576.42 904.87 C 593.19 882.88 587.3 833.99 584.07 807.79 C 583.57 804.24 583.0 800.7 582.38 797.17 C 582.27 796.48 582.16 795.8 582.04 795.09 C 579.7 781.15 573.34 769.79 562.55 760.62 C 551.2 752.67 534.64 750.17 521.52 746.53 C 520.58 746.26 519.63 746.0 518.66 745.73 C 516.38 745.17 516.38 745.17 514.38 745.17 C 514.38 744.51 514.38 743.85 514.38 743.17 C 515.42 743.07 516.47 742.97 517.54 742.87 C 523.74 742.09 529.72 740.47 535.76 738.92 C 536.92 738.63 538.09 738.35 539.29 738.05 C 549.96 735.31 562.37 731.3 568.5 721.34 C 576.04 704.68 571.43 677.04 565.43 660.55 C 562.36 653.45 557.81 648.42 551.38 644.17 C 541.02 640.41 529.83 638.85 518.99 637.04 C 517.36 636.76 515.72 636.48 514.09 636.21 C 510.69 635.63 507.28 635.05 503.88 634.48 C 499.57 633.76 495.27 633.03 490.97 632.29 C 442.02 623.95 442.02 623.95 424.94 622.98 C 424.29 622.94 423.63 622.9 422.95 622.86 C 373.94 619.95 286.69 626.99 248.38 662.17 Z"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Macabeu</span><span class="dot">●</span>
+        <span>Blaufränkisch</span><span class="dot">●</span>
+        <span>Carricante</span><span class="dot">●</span>
+        <span>Xarel·lo</span><span class="dot">●</span>
+        <span>Friulano</span><span class="dot">●</span>
+        <span>Bobal</span><span class="dot">●</span>
+        <span>Grecanico</span><span class="dot">●</span>
+        <span>Savagnin</span><span class="dot">●</span>
+        <span>Macabeu</span><span class="dot">●</span>
+        <span>Blaufränkisch</span><span class="dot">●</span>
+        <span>Carricante</span><span class="dot">●</span>
+        <span>Xarel·lo</span><span class="dot">●</span>
+        <span>Friulano</span><span class="dot">●</span>
+        <span>Bobal</span><span class="dot">●</span>
+        <span>Grecanico</span><span class="dot">●</span>
+        <span>Savagnin</span><span class="dot">●</span>
+      </div>
+    </div>
+
+    <section id="about">
+      <div class="wrap about-grid">
+        <div class="about-copy reveal">
+          <p class="kicker">The thesis</p>
+          <p class="lead">A bottle is a core sample — strata of soil, season, and the people who refused to polish it away.</p>
+          <p>Public Sediments is a small, independently owned wine dealer. We introduce authentic, terroir-focused natural wines made by growers rather than brands: organically and biodynamically farmed fruit, fermented with native yeasts, bottled without commercial additives — no powdered tannin, no coloring, no flavor kits.</p>
+          <p>Like the domaines we represent, we are independent. The list is short on purpose. If a wine cannot speak for a place, it does not ship.</p>
+          <div class="stats">
+            <div class="stat"><b>42</b><span>Growers on the book</span></div>
+            <div class="stat"><b>0</b><span>Industrial additives</span></div>
+            <div class="stat"><b>100%</b><span>Organic fruit</span></div>
+          </div>
+        </div>
+        <figure class="frame reveal">
+          <img src="https://images.unsplash.com/photo-1560493676-04071c5f467b?auto=format&fit=crop&w=1400&q=80" alt="Sunlit vineyard rows in rolling hills" width="900" height="1125">
+          <figcaption class="frame-caption"><span>Living soils</span><span>Farming first</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="wines">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <div>
+            <p class="kicker">The list</p>
+            <h2>Currently pouring.</h2>
+          </div>
+          <p>A rotating selection for the table, the cellar, and the curious. Inquire for mixed cases and restaurant allocations.</p>
+        </div>
+        <div class="filters" role="toolbar" aria-label="Filter wines">
+          <button class="chip" data-filter="all" aria-pressed="true">All</button>
+          <button class="chip" data-filter="skin" aria-pressed="false">Skin contact</button>
+          <button class="chip" data-filter="red" aria-pressed="false">Red</button>
+          <button class="chip" data-filter="white" aria-pressed="false">White</button>
+          <button class="chip" data-filter="sparkling" aria-pressed="false">Sparkling</button>
+        </div>
+        <div class="wine-grid">
+          <article class="wine reveal" data-cat="skin">
+            <div class="swatch" style="background: linear-gradient(160deg, #e8b56b, #c45e2b 55%, #7a2436);"></div>
+            <div class="wine-meta"><span>Roussillon · 2023</span><span>Skin contact</span></div>
+            <h3>Planals</h3>
+            <p class="producer">Matassa</p>
+            <p>Macabeu, sun-warmed citrus peel, salt, and a little wildness. The house orange.</p>
+            <div class="wine-foot"><span class="price">$44</span><a class="inquire" href="#visit">Inquire</a></div>
+          </article>
+          <article class="wine reveal" data-cat="red">
+            <div class="swatch" style="background: linear-gradient(160deg, #c46a7a, #7a2436 50%, #2a0e16);"></div>
+            <div class="wine-meta"><span>Catalunya · 2022</span><span>Red</span></div>
+            <h3>BN</h3>
+            <p class="producer">Partida Creus</p>
+            <p>Chillable Bobal. Sour cherry, iron, and picnic energy. Zero costume.</p>
+            <div class="wine-foot"><span class="price">$32</span><a class="inquire" href="#visit">Inquire</a></div>
+          </article>
+          <article class="wine reveal" data-cat="white">
+            <div class="swatch" style="background: linear-gradient(160deg, #f0e2b2, #d9c27a 40%, #8a9e72);"></div>
+            <div class="wine-meta"><span>Etna · 2022</span><span>White</span></div>
+            <h3>MunJebel Bianco</h3>
+            <p class="producer">Frank Cornelissen</p>
+            <p>Carricante from volcanic sand. Smoke, lemon oil, altitude.</p>
+            <div class="wine-foot"><span class="price">$68</span><a class="inquire" href="#visit">Inquire</a></div>
+          </article>
+          <article class="wine reveal" data-cat="sparkling">
+            <div class="swatch" style="background: linear-gradient(160deg, #f7f1dc, #e8d7a8 45%, #c9a07a);"></div>
+            <div class="wine-meta"><span>Burgenland · 2023</span><span>Pét-nat</span></div>
+            <h3>Foam Weiß</h3>
+            <p class="producer">Meinklang</p>
+            <p>Pear, meadow, and a fine restless bubble. The table sparkler.</p>
+            <div class="wine-foot"><span class="price">$29</span><a class="inquire" href="#visit">Inquire</a></div>
+          </article>
+          <article class="wine reveal" data-cat="skin">
+            <div class="swatch" style="background: linear-gradient(160deg, #e6c16a, #b56a32 50%, #5c3a28);"></div>
+            <div class="wine-meta"><span>Friuli · 2021</span><span>Skin contact</span></div>
+            <h3>Slatnik</h3>
+            <p class="producer">Radikon</p>
+            <p>Chardonnay and Friulano, long maceration. Tannin, honey, rain on clay.</p>
+            <div class="wine-foot"><span class="price">$62</span><a class="inquire" href="#visit">Inquire</a></div>
+          </article>
+          <article class="wine reveal" data-cat="red">
+            <div class="swatch" style="background: linear-gradient(160deg, #d9899a, #9a3048 48%, #4a1420);"></div>
+            <div class="wine-meta"><span>Burgenland · 2023</span><span>Rosé</span></div>
+            <h3>Winifred</h3>
+            <p class="producer">Gut Oggau</p>
+            <p>Blaufränkisch and Zweigelt. Crushed strawberry, herbs, wet stone.</p>
+            <div class="wine-foot"><span class="price">$54</span><a class="inquire" href="#visit">Inquire</a></div>
+          </article>
+          <article class="wine reveal" data-cat="skin">
+            <div class="swatch" style="background: linear-gradient(160deg, #efd08a, #d08a3a 52%, #8a4a28);"></div>
+            <div class="wine-meta"><span>Sicily · 2022</span><span>Amphora</span></div>
+            <h3>Pithos Bianco</h3>
+            <p class="producer">COS</p>
+            <p>Grecanico in terracotta. Orange blossom, apricot skin, wild herbs.</p>
+            <div class="wine-foot"><span class="price">$42</span><a class="inquire" href="#visit">Inquire</a></div>
+          </article>
+          <article class="wine reveal" data-cat="sparkling">
+            <div class="swatch" style="background: linear-gradient(160deg, #f3ead2, #d7e0c8 40%, #9aae86);"></div>
+            <div class="wine-meta"><span>Penedès · 2021</span><span>Sparkling</span></div>
+            <h3>Blanc de Blancs</h3>
+            <p class="producer">Clos Lentiscus</p>
+            <p>Xarel·lo and Mediterranean air. Fine mousse, no costume, long finish.</p>
+            <div class="wine-foot"><span class="price">$48</span><a class="inquire" href="#visit">Inquire</a></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="standards">
+      <div class="wrap standards">
+        <div class="reveal">
+          <p class="kicker">Our standards</p>
+          <h2>Low intervention.<br>High fidelity.</h2>
+          <p style="color:var(--ink-soft); max-width:38ch;">We buy like we drink: from independent farmers who treat the vineyard as an ecosystem, not a factory floor.</p>
+        </div>
+        <div>
+          <div class="accordion reveal">
+            <details class="std" open>
+              <summary>Nothing added</summary>
+              <p>Most wine is built in the cellar — cultured yeast, powdered tannin, acid, enzymes, coloring. Ours is not. If it did not grow in the vineyard, it does not belong in the bottle.</p>
+            </details>
+            <details class="std">
+              <summary>Independent growers</summary>
+              <p>We work with small, family-run domaines. We know how they farm, how they ferment, and why they bottle the way they do. No cooperatives in costume. No private-label programs.</p>
+            </details>
+            <details class="std">
+              <summary>Living soils</summary>
+              <p>Organic at minimum; biodynamic whenever the grower has gone that far. Cover crops, compost, animals in the rows. Sediment in the glass starts as sediment in the ground.</p>
+            </details>
+            <details class="std">
+              <summary>Processed simply</summary>
+              <p>Ripe fruit, native ferment, time. Unfined, unfiltered, and often without added sulfur — or with so little it is a fingerprint, not a mask.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+      <div class="wrap" style="margin-top:2rem;">
+        <div class="std-visual reveal"><span>Farming is the winemaking.</span></div>
+      </div>
+    </section>
+
+    <section id="allocation">
+      <div class="wrap">
+        <div class="allocation reveal">
+          <div>
+            <p class="kicker" style="color:#e8a0ae;">The strata</p>
+            <h2>Three bottles. One layer at a time.</h2>
+            <p>Each month we ship a three-bottle allocation — a white or skin-contact, a red, and a wild card — with notes on soils, vessels, and the people who made them. Limited to 200 shares.</p>
+            <p><a class="btn btn-solid" href="#visit">Request a share</a></p>
+          </div>
+          <div class="alloc-card">
+            <ol>
+              <li>Wines sourced direct from the grower, never from a bulk pipeline.</li>
+              <li>Tasting notes that talk about dirt and decisions, not scores.</li>
+              <li>Pause, skip, or add cellar bottles whenever you like.</li>
+              <li>First look at tiny lots before they hit the open list.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="growers">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <div>
+            <p class="kicker">The book</p>
+            <h2>Growers we keep.</h2>
+          </div>
+          <p>A partial map of the domaines on allocation. The full book is a conversation.</p>
+        </div>
+        <div class="grower-grid">
+          <article class="grower-card reveal"><p class="place">Calce, Roussillon</p><h3>Matassa</h3><p>Tom Lubbe farms schist and marl as if they were a garden. High-altitude Mediterranean wines with lift and salt.</p></article>
+          <article class="grower-card reveal"><p class="place">Burgenland</p><h3>Gut Oggau</h3><p>Eduard and Stephanie Tscheppe-Eselböck. Biodynamic, character-driven, and bottled like a family portrait.</p></article>
+          <article class="grower-card reveal"><p class="place">Vittoria, Sicily</p><h3>COS</h3><p>Pithos and patience. Amphora-raised Grecanico and Frappato that taste like warm stone and citrus oil.</p></article>
+          <article class="grower-card reveal"><p class="place">Oslavia, Friuli</p><h3>Radikon</h3><p>Extended skin contact, no sulfur, and the patience of clay. Reference points for orange wine done as agriculture.</p></article>
+          <article class="grower-card reveal"><p class="place">Bonastre, Catalunya</p><h3>Partida Creus</h3><p>Massimo and Antonella recovered forgotten Catalan varieties and made them electric again.</p></article>
+          <article class="grower-card reveal"><p class="place">Etna, Sicily</p><h3>Frank Cornelissen</h3><p>Volcanic sands, old alberello vines, and a refusal to negotiate with the mountain.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="visit">
+      <div class="wrap visit-grid">
+        <div class="reveal">
+          <p class="kicker">Studio</p>
+          <h2>Come taste the ground.</h2>
+          <p style="color:var(--ink-soft);">Allocations, restaurant accounts, and private tastings by appointment in Salt Lake City. We ship nationwide to 21+.</p>
+          <p><strong>Public Sediments</strong><br>By appointment<br>Salt Lake City, Utah<br><a href="mailto:hello@publicsediments.com">hello@publicsediments.com</a></p>
+          <p style="color:var(--muted); font-size:0.92rem;">Please drink with care. You must be 21 or older to inquire.</p>
+        </div>
+        <div class="visit-card reveal">
+          <form id="inquire-form">
+            <div>
+              <label for="name">Name</label>
+              <input id="name" name="name" autocomplete="name" required>
+            </div>
+            <div>
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" autocomplete="email" required>
+            </div>
+            <div>
+              <label for="note">What are you looking for?</label>
+              <textarea id="note" name="note" rows="3" placeholder="Allocation, a mixed case, a restaurant book…"></textarea>
+            </div>
+            <button class="btn btn-solid" type="submit">Send inquiry</button>
+            <p class="form-note" role="status"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <span class="icon icon-mark" aria-hidden="true"></span>
+          <div>
+            <div class="brand-name" style="font-size:1.4rem;">Public Sediments</div>
+            <p style="color:rgba(250,247,242,0.7); max-width:36ch;">Natural wines, unfined. An independent dealer for people who like evidence in the glass.</p>
+          </div>
+        </div>
+        <div class="foot-links">
+          <a href="#wines">Current list</a>
+          <a href="#allocation">The Strata</a>
+          <a href="#growers">Growers</a>
+          <a href="#visit">Contact</a>
+        </div>
+        <div class="foot-links">
+          <a href="mailto:hello@publicsediments.com">hello@publicsediments.com</a>
+          <a href="https://instagram.com" rel="noopener">Instagram</a>
+          <span style="color:rgba(250,247,242,0.5);">Shipping 21+ · USA</span>
+        </div>
+      </div>
+      <div class="legal">
+        <span>© 2026 Public Sediments</span>
+        <span class="legal-heart"><span class="icon icon-heart" aria-hidden="true"></span> Drink slowly. Leave the sediment.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const header = document.querySelector("header.site");
+    const toggle = document.querySelector(".menu-toggle");
+    const form = document.getElementById("inquire-form");
+
+    const onScroll = () => header.classList.toggle("is-scrolled", window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    toggle.addEventListener("click", () => {
+      const open = document.body.classList.toggle("nav-open");
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    });
+    document.querySelectorAll(".nav-links a").forEach((a) => {
+      a.addEventListener("click", () => {
+        document.body.classList.remove("nav-open");
+        toggle.setAttribute("aria-expanded", "false");
+      });
+    });
+
+    const chips = document.querySelectorAll(".chip");
+    const wines = document.querySelectorAll(".wine");
+    chips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        chips.forEach((c) => c.setAttribute("aria-pressed", "false"));
+        chip.setAttribute("aria-pressed", "true");
+        const f = chip.dataset.filter;
+        wines.forEach((w) => {
+          w.classList.toggle("is-hidden", f !== "all" && w.dataset.cat !== f);
+        });
+      });
+    });
+
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("is-in"); });
+      }, { threshold: 0.12 });
+      document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+    } else {
+      document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-in"));
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const note = form.querySelector(".form-note");
+      note.textContent = "Thank you. We will write back from Salt Lake City.";
+      form.reset();
+    });
+  </script>
+</body>
+</html>
