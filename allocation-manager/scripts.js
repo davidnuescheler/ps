@@ -16,6 +16,7 @@ const state = {
   catalog: [],
   monthLog: [],
   producerId: null,
+  wineId: null,
   showEmpty: false,
   source: 'server',
 };
@@ -25,6 +26,7 @@ const timers = new Map();
 const syncEl = document.getElementById('sync');
 const boardEl = document.getElementById('board');
 const producerNav = document.getElementById('producerNav');
+const wineNav = document.getElementById('wineNav');
 const monthLabel = document.getElementById('monthLabel');
 const statsEl = document.getElementById('stats');
 const producerList = document.getElementById('producerList');
@@ -45,10 +47,96 @@ function setSync(status) {
   syncEl.title = titles[status] || status;
 }
 
-function formatCases(value) {
-  const num = Number(value);
-  if (!num) return '';
-  return String(Number(num.toFixed(3)));
+const BOTTLES_PER_CASE = 12;
+
+function splitCases(value) {
+  const bottles = Math.round((Number(value) || 0) * BOTTLES_PER_CASE);
+  const negative = bottles < 0;
+  const abs = Math.abs(bottles);
+  return {
+    bottles,
+    cases: Math.floor(abs / BOTTLES_PER_CASE) * (negative ? -1 : 1),
+    leftover: (abs % BOTTLES_PER_CASE) * (negative ? -1 : 1),
+  };
+}
+
+function casesFromParts(cases, bottles) {
+  return (Number(cases) || 0) + (Number(bottles) || 0) / BOTTLES_PER_CASE;
+}
+
+function qtyPhrase(value) {
+  const { cases, leftover } = splitCases(value);
+  const c = Math.abs(cases);
+  const b = Math.abs(leftover);
+  const bits = [];
+  if (c) bits.push(`${c} ${c === 1 ? 'case' : 'cases'}`);
+  if (b) bits.push(`${b} ${b === 1 ? 'bottle' : 'bottles'}`);
+  if (!bits.length) return '0 bottles';
+  if (bits.length === 2) return `${bits[0]} and ${bits[1]}`;
+  return bits[0];
+}
+
+function renderUnit(kind, value, { editable = false, muted = false } = {}) {
+  const isCase = kind === 'case';
+  const word = isCase
+    ? (Math.abs(value) === 1 ? 'case' : 'cases')
+    : (Math.abs(value) === 1 ? 'bottle' : 'bottles');
+  const icon = isCase ? 'icon-case' : 'icon-bottle';
+  const text = String(Math.max(0, value) || 0);
+  const num = editable
+    ? `<span class="figure-value">
+        <span class="figure-sizer" aria-hidden="true">${text}</span>
+        <input class="figure-input" data-part="${isCase ? 'cases' : 'bottles'}" type="text" inputmode="numeric" pattern="[0-9]*" size="1" maxlength="3" value="${text}">
+      </span>`
+    : `<b class="figure-num">${text}</b>`;
+  return `
+    <div class="unit ${muted && !value ? 'is-zero' : ''}">
+      <span class="${icon}" aria-hidden="true"></span>
+      <div class="unit-copy">
+        ${num}
+        <span class="unit-word">${word}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderFigure(value, { editable = false, pack = '', over = false } = {}) {
+  const parts = splitCases(value);
+  const cases = Math.abs(parts.cases);
+  const leftover = Math.abs(parts.leftover);
+  const showCases = cases > 0 || (editable && leftover === 0);
+  const showBottles = leftover > 0 || (editable && cases === 0);
+  return `
+    <div class="figure-pack ${over ? 'is-over' : ''}" ${pack ? `data-pack="${pack}"` : ''}>
+      ${showCases ? renderUnit('case', cases, { editable }) : ''}
+      ${showBottles ? renderUnit('bottle', leftover, { editable, muted: true }) : ''}
+    </div>
+  `;
+}
+
+function compactQty(value) {
+  const { cases, leftover } = splitCases(value);
+  const c = Math.abs(cases);
+  const b = Math.abs(leftover);
+  if (!c && !b) {
+    return `
+      <span class="qty-line">
+        <span class="icon-case" aria-hidden="true"></span>0
+      </span>
+    `;
+  }
+  return `
+    <span class="qty-line">
+      ${c ? `<span class="icon-case" aria-hidden="true"></span>${c}` : ''}
+      ${b ? `<span class="icon-bottle" aria-hidden="true"></span>${b}` : ''}
+    </span>
+  `;
+}
+
+function packFrom(el) {
+  const cases = el.querySelector('[data-part="cases"]')?.value;
+  const bottles = el.querySelector('[data-part="bottles"]')?.value;
+  return casesFromParts(cases, bottles);
 }
 
 function escapeHtml(value) {
@@ -210,16 +298,50 @@ async function save(kind, event) {
 function renderStats(data) {
   const { received, allocated, remaining } = totalsFor(data.wines, data.allotments, data.allocations);
   statsEl.innerHTML = `
-    <div class="stat"><b>${formatCases(received) || 0}</b><span>Cases in</span></div>
-    <div class="stat"><b>${formatCases(allocated) || 0}</b><span>Allocated</span></div>
-    <div class="stat ${remaining < -0.001 ? 'over' : ''}"><b>${formatCases(remaining) || 0}</b><span>Remaining</span></div>
+    <div class="stat"><b>${compactQty(received)}</b><span>Received</span></div>
+    <div class="stat"><b>${compactQty(allocated)}</b><span>Allocated</span></div>
+    <div class="stat ${remaining < -0.001 ? 'over' : ''}"><b>${compactQty(remaining)}</b><span>Remaining</span></div>
   `;
+}
+
+function winesForProducer(data, producerId) {
+  return data.wines.filter((wine) => wine.producerId === producerId);
+}
+
+function wineLabel(wine) {
+  return [wine.vintage, wine.name].filter(Boolean).join(' ');
+}
+
+function syncSelection(data) {
+  if (!data.producers.length) {
+    state.producerId = null;
+    state.wineId = null;
+    return { producer: null, wines: [], wine: null };
+  }
+  const producer = data.producers.find((item) => item.id === state.producerId) || data.producers[0];
+  state.producerId = producer.id;
+  const wines = winesForProducer(data, producer.id);
+  const wine = wines.find((item) => item.id === state.wineId) || wines[0] || null;
+  state.wineId = wine?.id || null;
+  return { producer, wines, wine };
 }
 
 function renderProducerNav(data) {
   producerNav.innerHTML = data.producers.map((producer) => `
     <button class="producer-chip" data-id="${producer.id}" aria-pressed="${producer.id === state.producerId}" style="--chip:${producer.color}">
       <span class="swatch"></span>${escapeHtml(producer.name)}
+    </button>
+  `).join('');
+}
+
+function renderWineNav(wines, producer) {
+  if (!producer || !wines.length) {
+    wineNav.innerHTML = '';
+    return;
+  }
+  wineNav.innerHTML = wines.map((wine) => `
+    <button class="wine-chip" data-id="${wine.id}" aria-pressed="${wine.id === state.wineId}" style="--chip:${producer.color}">
+      ${escapeHtml(wineLabel(wine))}
     </button>
   `).join('');
 }
@@ -244,99 +366,82 @@ function fillWineProducerSelect(data) {
   `).join('');
 }
 
-function renderBoard(data) {
-  if (!data.producers.length) {
+function renderBoard(data, producer, wine) {
+  if (!producer) {
     boardEl.innerHTML = '<div class="empty">No producers yet. Add the book, then allot wines for the month.</div>';
     return;
   }
-  const producer = data.producers.find((item) => item.id === state.producerId) || data.producers[0];
-  state.producerId = producer.id;
-  const wines = data.wines.filter((wine) => wine.producerId === producer.id);
-  if (!wines.length) {
+  if (!wine) {
     boardEl.innerHTML = `<div class="empty">No wines on ${escapeHtml(producer.name)} yet. Add a wine to start this month’s allotment.</div>`;
     return;
   }
 
   const visibleCustomers = data.customers.filter((customer) => {
     if (state.showEmpty) return true;
-    return wines.some((wine) => data.allocations.has(`${wine.id}:${customer.id}`));
+    return data.allocations.has(`${wine.id}:${customer.id}`);
   });
 
-  const wineHeads = wines.map((wine) => {
-    const format = wine.format === 'magnum' ? ' · Magnum' : '';
-    return `<th class="wine-head" style="--wine-col:${producer.color}">
-      <span class="meta">${escapeHtml(wine.vintage)} ${escapeHtml(wine.appellation || '')}${format}</span>
-      <span class="name">${escapeHtml(wine.name)}</span>
-    </th>`;
-  }).join('');
+  const allot = data.allotments.get(wine.id) || { cases: 0, wholesale: 0, retail: 0 };
+  const allocated = allocatedForWine(wine.id, data.allocations);
+  const remaining = (allot.cases || 0) - allocated;
+  const receivedBottles = Math.round((allot.cases || 0) * BOTTLES_PER_CASE);
+  const allocatedBottles = Math.round(allocated * BOTTLES_PER_CASE);
+  const pct = receivedBottles > 0
+    ? Math.min(100, Math.round((allocatedBottles / receivedBottles) * 100))
+    : (allocatedBottles > 0 ? 100 : 0);
+  const remainCopy = remaining < -0.001
+    ? `${qtyPhrase(remaining)} over the allotment`
+    : remaining <= 0.001
+      ? 'Fully allocated'
+      : `${qtyPhrase(remaining)} left to place`;
 
-  const receivedRow = wines.map((wine) => {
-    const allot = data.allotments.get(wine.id) || { cases: 0, wholesale: 0, retail: 0 };
-    return `<td><input class="qty" data-allot="${wine.id}" type="number" min="0" step="0.001" value="${formatCases(allot.cases)}"></td>`;
-  }).join('');
-
-  const allocatedRow = wines.map((wine) => {
-    const allocated = allocatedForWine(wine.id, data.allocations);
-    return `<td>${formatCases(allocated) || '0'}</td>`;
-  }).join('');
-
-  const remainingRow = wines.map((wine) => {
-    const received = data.allotments.get(wine.id)?.cases || 0;
-    const remaining = received - allocatedForWine(wine.id, data.allocations);
-    return `<td class="${remaining < -0.001 ? 'over' : ''}">${formatCases(remaining) || '0'}</td>`;
-  }).join('');
-
-  const priceRow = wines.map((wine) => {
-    const allot = data.allotments.get(wine.id) || { wholesale: 0, retail: 0 };
-    return `<td>
-      <input class="price" data-wholesale="${wine.id}" type="number" min="0" step="1" value="${allot.wholesale || ''}" placeholder="WS">
-      /
-      <input class="price" data-retail="${wine.id}" type="number" min="0" step="1" value="${allot.retail || ''}" placeholder="RT">
-    </td>`;
-  }).join('');
-
-  const customerRows = visibleCustomers.map((customer) => {
-    const cells = wines.map((wine) => {
-      const row = data.allocations.get(`${wine.id}:${customer.id}`);
-      const status = row?.status || '';
-      return `<td>
-        <div class="cell">
-          <input class="qty" data-alloc="${wine.id}:${customer.id}" type="number" min="0" step="0.001" value="${formatCases(row?.cases)}">
-          <button class="status ${status}" data-status="${wine.id}:${customer.id}" type="button">${status || 'set status'}</button>
-        </div>
-      </td>`;
-    }).join('');
-    return `<tr class="${customer.kind === 'transfer' ? 'transfer' : ''}">
-      <th class="sticky">${escapeHtml(customer.name)}</th>${cells}
-    </tr>`;
+  const accounts = visibleCustomers.map((customer) => {
+    const row = data.allocations.get(`${wine.id}:${customer.id}`);
+    const status = row?.status || '';
+    return `
+      <li class="account ${customer.kind === 'transfer' ? 'transfer' : ''}">
+        <span class="account-name">${escapeHtml(customer.name)}</span>
+        ${renderFigure(row?.cases || 0, { editable: true, pack: `alloc:${wine.id}:${customer.id}` })}
+        <button class="status ${status}" data-status="${wine.id}:${customer.id}" type="button">${status || 'set status'}</button>
+      </li>
+    `;
   }).join('');
 
   boardEl.innerHTML = `
-    <table class="grid">
-      <thead>
-        <tr>
-          <th class="sticky">${escapeHtml(producer.name)}</th>
-          ${wineHeads}
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="metric"><th class="sticky">Cases received</th>${receivedRow}</tr>
-        <tr class="metric"><th class="sticky">Total allocated</th>${allocatedRow}</tr>
-        <tr class="metric"><th class="sticky">Remaining</th>${remainingRow}</tr>
-        <tr class="metric"><th class="sticky">Pricing WS / RT</th>${priceRow}</tr>
-        ${customerRows || '<tr><td class="sticky muted" colspan="20">No accounts allocated yet. Show empty accounts or add a customer.</td></tr>'}
-      </tbody>
-    </table>
+    <article class="overview" style="--wine-col:${producer.color}">
+      <div class="overview-grid">
+        <section class="figure">
+          <p class="figure-label">Received</p>
+          ${renderFigure(allot.cases, { editable: true, pack: `allot:${wine.id}` })}
+        </section>
+        <section class="figure">
+          <p class="figure-label">Allocated</p>
+          ${renderFigure(allocated, { over: remaining < -0.001 })}
+        </section>
+      </div>
+      <div class="overview-meter" role="img" aria-label="${pct}% allocated">
+        <span class="overview-meter-fill" style="width:${pct}%"></span>
+      </div>
+      <p class="overview-remain ${remaining < -0.001 ? 'is-over' : ''}">${remainCopy}</p>
+      <div class="overview-price">
+        <label>WS <input class="price" data-wholesale="${wine.id}" type="number" min="0" step="1" value="${allot.wholesale || ''}" placeholder="—"></label>
+        <label>RT <input class="price" data-retail="${wine.id}" type="number" min="0" step="1" value="${allot.retail || ''}" placeholder="—"></label>
+      </div>
+    </article>
+    <ul class="accounts">
+      ${accounts || '<li class="accounts-empty">No accounts allocated yet. Show empty accounts or add a customer.</li>'}
+    </ul>
   `;
 }
 
 function render() {
   const data = model();
-  if (!state.producerId && data.producers[0]) state.producerId = data.producers[0].id;
+  const { producer, wines, wine } = syncSelection(data);
   monthLabel.textContent = formatMonthLabel(state.month);
   renderStats(data);
   renderProducerNav(data);
-  renderBoard(data);
+  renderWineNav(wines, producer);
+  renderBoard(data, producer, wine);
   renderLists(data);
   fillWineProducerSelect(data);
 }
@@ -373,20 +478,31 @@ function nextStatus(current) {
 
 function onBoardInput(event) {
   const { target } = event;
-  if (target.dataset.allot) {
-    const wineId = target.dataset.allot;
-    debounce(`allot-${wineId}`, () => persistAllotment(wineId, { cases: Number(target.value) || 0 }));
-  } else if (target.dataset.wholesale) {
+  if (target.classList.contains('figure-input')) {
+    const cleaned = target.value.replace(/\D/g, '');
+    if (cleaned !== target.value) target.value = cleaned;
+    const sizer = target.previousElementSibling;
+    if (sizer?.classList.contains('figure-sizer')) {
+      sizer.textContent = target.value || '0';
+    }
+  }
+  const pack = target.closest('[data-pack]');
+  if (pack) {
+    const [kind, wineId, customerId] = pack.dataset.pack.split(':');
+    const cases = packFrom(pack);
+    if (kind === 'allot') {
+      debounce(`allot-${wineId}`, () => persistAllotment(wineId, { cases }));
+    } else if (kind === 'alloc' && customerId) {
+      debounce(`alloc-${wineId}-${customerId}`, () => persistAllocation(wineId, customerId, { cases }));
+    }
+    return;
+  }
+  if (target.dataset.wholesale) {
     const wineId = target.dataset.wholesale;
     debounce(`ws-${wineId}`, () => persistAllotment(wineId, { wholesale: Number(target.value) || 0 }));
   } else if (target.dataset.retail) {
     const wineId = target.dataset.retail;
     debounce(`rt-${wineId}`, () => persistAllotment(wineId, { retail: Number(target.value) || 0 }));
-  } else if (target.dataset.alloc) {
-    const [wineId, customerId] = target.dataset.alloc.split(':');
-    debounce(`alloc-${wineId}-${customerId}`, () => persistAllocation(wineId, customerId, {
-      cases: Number(target.value) || 0,
-    }));
   }
 }
 
@@ -497,6 +613,13 @@ function bind() {
     const chip = event.target.closest('[data-id]');
     if (!chip) return;
     state.producerId = chip.dataset.id;
+    state.wineId = null;
+    render();
+  });
+  wineNav.addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-id]');
+    if (!chip) return;
+    state.wineId = chip.dataset.id;
     render();
   });
   boardEl.addEventListener('input', onBoardInput);
@@ -514,6 +637,8 @@ function bind() {
     event.preventDefault();
     const id = generateId();
     const producerId = document.getElementById('wineProducer').value;
+    state.producerId = producerId;
+    state.wineId = id;
     await save('catalog', {
       op: 'wine_added',
       id,
@@ -529,7 +654,6 @@ function bind() {
       wholesale: Number(document.getElementById('wineWholesale').value) || 0,
       retail: Number(document.getElementById('wineRetail').value) || 0,
     });
-    state.producerId = producerId;
     wineDialog.close();
     event.target.reset();
   });
@@ -561,6 +685,7 @@ function bind() {
       color: document.getElementById('producerColor').value,
     });
     state.producerId = id;
+    state.wineId = null;
     producerDialog.close();
     event.target.reset();
   });
