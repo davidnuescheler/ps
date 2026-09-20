@@ -24,6 +24,8 @@
   <link rel="icon" href="/icons/mark.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/fraunces/v38/6NUu8FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0K7iN7iQcIfJD58nht1Yc7qv8oRcTn.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/fraunces/v38/6NUs8FyLNQOQZAnv9ZwNjucMHVn85Ni7emAe9lKqZTnbB-gzTK0K1ChJdt9hFwpX9W37lgF_mv0iQublWII.woff2">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -137,6 +139,7 @@
       height: var(--header);
       display: flex;
       align-items: center;
+      -webkit-backdrop-filter: blur(16px);
       backdrop-filter: blur(16px);
       background: color-mix(in srgb, var(--paper) 78%, transparent);
       border-bottom: 1px solid transparent;
@@ -224,6 +227,7 @@
     body.nav-open .menu-toggle span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
     body.nav-open .menu-toggle span:nth-child(2) { opacity: 0; }
     body.nav-open .menu-toggle span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+    .nav-menu-cta { display: none; }
 
     .hero {
       position: relative;
@@ -259,10 +263,12 @@
       font-size: clamp(3.1rem, 7vw, 6.4rem);
       margin: 0.6rem 0 1.1rem;
       font-weight: 300;
-      max-width: 11ch;
+      max-width: 8em;
     }
     .hero h1 em {
       font-style: italic;
+      font-synthesis: none;
+      white-space: nowrap;
       color: var(--wine);
     }
     .lede {
@@ -665,11 +671,11 @@
       .wine-grid { grid-template-columns: repeat(2, 1fr); }
       .grower-grid { grid-template-columns: 1fr 1fr; }
       .hero-mark { min-height: 280px; order: -1; }
-      .nav-cta { display: none; }
+      .nav-bar > .nav-cta { display: none; }
     }
     @media (max-width: 760px) {
       .menu-toggle { display: block; }
-      .nav-links, header.site .nav-cta {
+      .nav-links, .nav-bar > .nav-cta {
         display: none;
       }
       body.nav-open .nav-links {
@@ -677,16 +683,31 @@
         flex-direction: column;
         position: fixed;
         inset: var(--header) 0 0 0;
-        background: var(--foam);
+        height: calc(100dvh - var(--header));
+        background: var(--paper);
         padding: 2rem 1.4rem;
         gap: 1.2rem;
         z-index: 20;
+        overflow-y: auto;
         font-family: var(--serif);
         font-size: 2rem;
       }
+      body.nav-open .nav-menu-cta { display: block; }
+      body.nav-open .nav-menu-cta .nav-cta {
+        display: inline-flex;
+        margin-top: 0.6rem;
+        font-family: var(--sans);
+        font-size: 0.85rem;
+      }
       body.nav-open { overflow: hidden; }
       body.nav-open::before { opacity: 0; }
-      body.nav-open header.site { z-index: 22; }
+      body.nav-open header.site {
+        z-index: 22;
+        background: var(--paper);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        border-bottom-color: var(--line);
+      }
       .wine-grid, .grower-grid, .stats { grid-template-columns: 1fr; }
       .section-head { flex-direction: column; align-items: start; }
       section { padding: 3.6rem 0; }
@@ -718,6 +739,9 @@
           <li><a href="#allocation">Allocation</a></li>
           <li><a href="#growers">Growers</a></li>
           <li><a href="#visit">Visit</a></li>
+          <li class="nav-menu-cta">
+            <a class="nav-cta" href="#allocation"><span class="icon icon-heart" aria-hidden="true"></span> Join the strata</a>
+          </li>
         </ul>
       </nav>
       <a class="nav-cta" href="#allocation"><span class="icon icon-heart" aria-hidden="true"></span> Join the strata</a>
@@ -732,7 +756,7 @@
       <div class="wrap hero-grid">
         <div>
           <p class="kicker">Independent natural wine dealer</p>
-          <h1>Wines with a sense of <em>ground.</em></h1>
+          <h1>Wines with<br>a sense of<br><em>ground.</em></h1>
           <p class="lede">Low-intervention bottles from growers who farm living soils and bottle with as little between the vineyard and the glass as possible. Native yeast. No makeup. Sediment welcome.</p>
           <div class="hero-actions">
             <a class="btn btn-solid" href="#wines">See the current list</a>
