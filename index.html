@@ -429,6 +429,7 @@
     .filters {
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       gap: 0.5rem;
       margin-bottom: 1.6rem;
     }
@@ -448,6 +449,51 @@
       border-color: var(--ink);
     }
     .chip:focus-visible { outline: 2px solid var(--wine); outline-offset: 3px; }
+    .wine-search {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex: 1 1 12rem;
+      min-width: 12rem;
+      max-width: 22rem;
+      margin-left: auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.28rem 0.9rem;
+      color: var(--ink-soft);
+      background: color-mix(in srgb, var(--foam) 70%, transparent);
+    }
+    .wine-search:focus-within {
+      border-color: var(--ink);
+      color: var(--ink);
+    }
+    .wine-search .icon-search {
+      display: inline-block;
+      width: 0.95rem;
+      height: 0.95rem;
+      flex: none;
+      background: currentColor;
+      -webkit-mask: url("icons/search.svg") center / contain no-repeat;
+      mask: url("icons/search.svg") center / contain no-repeat;
+      opacity: 0.65;
+    }
+    .wine-search input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      padding: 0.28rem 0;
+      font: inherit;
+      color: var(--ink);
+      outline: none;
+    }
+    .wine-search input::placeholder { color: var(--muted); }
+    .wine mark {
+      background: color-mix(in srgb, var(--clay) 62%, #f6e3b5);
+      color: inherit;
+      padding: 0 0.12em;
+      border-radius: 0.15em;
+    }
 
     .wine-grid {
       display: grid;
@@ -465,7 +511,12 @@
       transition: transform 0.4s var(--ease), box-shadow 0.4s;
     }
     .wine:hover { transform: translateY(-6px); box-shadow: var(--shadow); }
-    .wine.is-hidden { display: none; }
+    .wine.is-hidden,
+    .grower-card.is-hidden { display: none; }
+    .catalog-status#wine-empty {
+      margin: -0.6rem 0 1.2rem;
+      padding: 0;
+    }
     .swatch {
       height: 140px;
       border-radius: 1rem;
@@ -486,7 +537,12 @@
     .wine h3 { margin: 0.35rem 0 0.2rem; font-size: 1.35rem; font-weight: 500; }
     .wine .producer { margin: 0 0 0.7rem; color: var(--ink-soft); }
     .wine p { margin: 0 0 1rem; color: var(--muted); font-size: 0.95rem; flex: 1; }
-    .wine-foot { display: flex; justify-content: space-between; align-items: center; }
+    .catalog-more {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.4rem;
+    }
+    .catalog-more[hidden] { display: none; }
     .price { font-family: var(--serif); font-size: 1.25rem; }
     .inquire {
       font-size: 0.78rem;
@@ -804,7 +860,7 @@
           <p>Public Sediments is a small, independently owned wine dealer. We introduce authentic, terroir-focused natural wines made by growers rather than brands: organically and biodynamically farmed fruit, fermented with native yeasts, bottled without commercial additives — no powdered tannin, no coloring, no flavor kits.</p>
           <p>Like the domaines we represent, we are independent. The list is short on purpose. If a wine cannot speak for a place, it does not ship.</p>
           <div class="stats">
-            <div class="stat"><b>42</b><span>Growers on the book</span></div>
+            <div class="stat"><b id="grower-count">—</b><span>Growers on the book</span></div>
             <div class="stat"><b>0</b><span>Industrial additives</span></div>
             <div class="stat"><b>100%</b><span>Organic fruit</span></div>
           </div>
@@ -830,73 +886,19 @@
           <button class="chip" data-filter="skin" aria-pressed="false">Skin contact</button>
           <button class="chip" data-filter="red" aria-pressed="false">Red</button>
           <button class="chip" data-filter="white" aria-pressed="false">White</button>
+          <button class="chip" data-filter="rose" aria-pressed="false">Rosé</button>
           <button class="chip" data-filter="sparkling" aria-pressed="false">Sparkling</button>
+          <label class="wine-search">
+            <span class="icon-search" aria-hidden="true"></span>
+            <input id="wineSearch" type="search" placeholder="Search the list" autocomplete="off" spellcheck="false">
+          </label>
         </div>
-        <div class="wine-grid">
-          <article class="wine reveal" data-cat="skin">
-            <div class="swatch" style="background: linear-gradient(160deg, #e8b56b, #c45e2b 55%, #7a2436);"></div>
-            <div class="wine-meta"><span>Roussillon · 2023</span><span>Skin contact</span></div>
-            <h3>Planals</h3>
-            <p class="producer">Matassa</p>
-            <p>Macabeu, sun-warmed citrus peel, salt, and a little wildness. The house orange.</p>
-            <div class="wine-foot"><span class="price">$44</span><a class="inquire" href="#visit">Inquire</a></div>
-          </article>
-          <article class="wine reveal" data-cat="red">
-            <div class="swatch" style="background: linear-gradient(160deg, #c46a7a, #7a2436 50%, #2a0e16);"></div>
-            <div class="wine-meta"><span>Catalunya · 2022</span><span>Red</span></div>
-            <h3>BN</h3>
-            <p class="producer">Partida Creus</p>
-            <p>Chillable Bobal. Sour cherry, iron, and picnic energy. Zero costume.</p>
-            <div class="wine-foot"><span class="price">$32</span><a class="inquire" href="#visit">Inquire</a></div>
-          </article>
-          <article class="wine reveal" data-cat="white">
-            <div class="swatch" style="background: linear-gradient(160deg, #f0e2b2, #d9c27a 40%, #8a9e72);"></div>
-            <div class="wine-meta"><span>Etna · 2022</span><span>White</span></div>
-            <h3>MunJebel Bianco</h3>
-            <p class="producer">Frank Cornelissen</p>
-            <p>Carricante from volcanic sand. Smoke, lemon oil, altitude.</p>
-            <div class="wine-foot"><span class="price">$68</span><a class="inquire" href="#visit">Inquire</a></div>
-          </article>
-          <article class="wine reveal" data-cat="sparkling">
-            <div class="swatch" style="background: linear-gradient(160deg, #f7f1dc, #e8d7a8 45%, #c9a07a);"></div>
-            <div class="wine-meta"><span>Burgenland · 2023</span><span>Pét-nat</span></div>
-            <h3>Foam Weiß</h3>
-            <p class="producer">Meinklang</p>
-            <p>Pear, meadow, and a fine restless bubble. The table sparkler.</p>
-            <div class="wine-foot"><span class="price">$29</span><a class="inquire" href="#visit">Inquire</a></div>
-          </article>
-          <article class="wine reveal" data-cat="skin">
-            <div class="swatch" style="background: linear-gradient(160deg, #e6c16a, #b56a32 50%, #5c3a28);"></div>
-            <div class="wine-meta"><span>Friuli · 2021</span><span>Skin contact</span></div>
-            <h3>Slatnik</h3>
-            <p class="producer">Radikon</p>
-            <p>Chardonnay and Friulano, long maceration. Tannin, honey, rain on clay.</p>
-            <div class="wine-foot"><span class="price">$62</span><a class="inquire" href="#visit">Inquire</a></div>
-          </article>
-          <article class="wine reveal" data-cat="red">
-            <div class="swatch" style="background: linear-gradient(160deg, #d9899a, #9a3048 48%, #4a1420);"></div>
-            <div class="wine-meta"><span>Burgenland · 2023</span><span>Rosé</span></div>
-            <h3>Winifred</h3>
-            <p class="producer">Gut Oggau</p>
-            <p>Blaufränkisch and Zweigelt. Crushed strawberry, herbs, wet stone.</p>
-            <div class="wine-foot"><span class="price">$54</span><a class="inquire" href="#visit">Inquire</a></div>
-          </article>
-          <article class="wine reveal" data-cat="skin">
-            <div class="swatch" style="background: linear-gradient(160deg, #efd08a, #d08a3a 52%, #8a4a28);"></div>
-            <div class="wine-meta"><span>Sicily · 2022</span><span>Amphora</span></div>
-            <h3>Pithos Bianco</h3>
-            <p class="producer">COS</p>
-            <p>Grecanico in terracotta. Orange blossom, apricot skin, wild herbs.</p>
-            <div class="wine-foot"><span class="price">$42</span><a class="inquire" href="#visit">Inquire</a></div>
-          </article>
-          <article class="wine reveal" data-cat="sparkling">
-            <div class="swatch" style="background: linear-gradient(160deg, #f3ead2, #d7e0c8 40%, #9aae86);"></div>
-            <div class="wine-meta"><span>Penedès · 2021</span><span>Sparkling</span></div>
-            <h3>Blanc de Blancs</h3>
-            <p class="producer">Clos Lentiscus</p>
-            <p>Xarel·lo and Mediterranean air. Fine mousse, no costume, long finish.</p>
-            <div class="wine-foot"><span class="price">$48</span><a class="inquire" href="#visit">Inquire</a></div>
-          </article>
+        <p class="catalog-status" id="wine-empty" hidden>No wines match that search.</p>
+        <div class="wine-grid" id="wine-grid">
+          <p class="catalog-status">Loading the current list…</p>
+        </div>
+        <div class="catalog-more" id="wine-more" hidden>
+          <button class="btn" type="button" id="showAllWines">Show all wines</button>
         </div>
       </div>
     </section>
@@ -964,13 +966,11 @@
           </div>
           <p>A partial map of the domaines on allocation. The full book is a conversation.</p>
         </div>
-        <div class="grower-grid">
-          <article class="grower-card reveal"><p class="place">Calce, Roussillon</p><h3>Matassa</h3><p>Tom Lubbe farms schist and marl as if they were a garden. High-altitude Mediterranean wines with lift and salt.</p></article>
-          <article class="grower-card reveal"><p class="place">Burgenland</p><h3>Gut Oggau</h3><p>Eduard and Stephanie Tscheppe-Eselböck. Biodynamic, character-driven, and bottled like a family portrait.</p></article>
-          <article class="grower-card reveal"><p class="place">Vittoria, Sicily</p><h3>COS</h3><p>Pithos and patience. Amphora-raised Grecanico and Frappato that taste like warm stone and citrus oil.</p></article>
-          <article class="grower-card reveal"><p class="place">Oslavia, Friuli</p><h3>Radikon</h3><p>Extended skin contact, no sulfur, and the patience of clay. Reference points for orange wine done as agriculture.</p></article>
-          <article class="grower-card reveal"><p class="place">Bonastre, Catalunya</p><h3>Partida Creus</h3><p>Massimo and Antonella recovered forgotten Catalan varieties and made them electric again.</p></article>
-          <article class="grower-card reveal"><p class="place">Etna, Sicily</p><h3>Frank Cornelissen</h3><p>Volcanic sands, old alberello vines, and a refusal to negotiate with the mountain.</p></article>
+        <div class="grower-grid" id="grower-grid">
+          <p class="catalog-status">Loading growers…</p>
+        </div>
+        <div class="catalog-more" id="grower-more" hidden>
+          <button class="btn" type="button" id="showAllGrowers">Show all growers</button>
         </div>
       </div>
     </section>
@@ -1057,26 +1057,280 @@
     });
 
     const chips = document.querySelectorAll(".chip");
-    const wines = document.querySelectorAll(".wine");
-    chips.forEach((chip) => {
-      chip.addEventListener("click", () => {
-        chips.forEach((c) => c.setAttribute("aria-pressed", "false"));
-        chip.setAttribute("aria-pressed", "true");
-        const f = chip.dataset.filter;
-        wines.forEach((w) => {
-          w.classList.toggle("is-hidden", f !== "all" && w.dataset.cat !== f);
-        });
+    const filters = document.querySelector(".filters");
+    const wineSearch = document.getElementById("wineSearch");
+    const wineEmpty = document.getElementById("wine-empty");
+    const wineGrid = document.getElementById("wine-grid");
+    const growerGrid = document.getElementById("grower-grid");
+    const growerCount = document.getElementById("grower-count");
+
+    const CATALOG_URLS = [
+      "/data/wines-2026-09.json",
+      "https://main--ps--davidnuescheler.aem.live/data/wines-2026-09.json",
+    ];
+    const SWATCH = {
+      skin: "linear-gradient(160deg, #e8b56b, #c45e2b 55%, #7a2436)",
+      red: "linear-gradient(160deg, #c46a7a, #7a2436 50%, #2a0e16)",
+      white: "linear-gradient(160deg, #f0e2b2, #d9c27a 40%, #8a9e72)",
+      sparkling: "linear-gradient(160deg, #f7f1dc, #e8d7a8 45%, #c9a07a)",
+      rose: "linear-gradient(160deg, #f3c3c8, #d9899a 48%, #7a2436)",
+      other: "linear-gradient(160deg, #e8d7c0, #c9a07a 50%, #6d7b63)",
+    };
+    const CAT_LABEL = {
+      skin: "Skin contact",
+      red: "Red",
+      white: "White",
+      sparkling: "Sparkling",
+      rose: "Rosé",
+      other: "Wine",
+    };
+
+    const escapeHtml = (value) => String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+    const prettyName = (name) => {
+      const s = String(name || "").trim();
+      if (!s) return "";
+      const letters = s.replace(/[^\p{L}]/gu, "");
+      const caps = (s.match(/\p{Lu}/gu) || []).length;
+      if (letters && caps / letters.length >= 0.6) {
+        return s.toLowerCase().replace(/(^|[\s(/'-])(\p{L})/gu, (_, a, b) => a + b.toUpperCase());
+      }
+      return s;
+    };
+
+    const wineCategory = (row) => {
+      const t = `${row.Wine || ""} ${row["Region/Sub Region"] || ""}`.toLowerCase();
+      if (/pet-?nat|pétillant|sparkling|champagne|crémant|cap classique|mousseux|col fondo|sekt|frizzante/.test(t)) return "sparkling";
+      if (/rosé|rosato|rosado|\brose\b|\brosa\b/.test(t)) return "rose";
+      if (/orange|macerat|skin contact|amber|orangée|orangee/.test(t)) return "skin";
+      if (/\bwhite\b|\bblanc\b|bianco|weiss|weiß|blanco|chardonnay|riesling|gr[uü]ner|gew[uü]rz|chenin|aligot|sauvignon|pinot gris|friulano/.test(t)) return "white";
+      if (/\bred\b|\brouge\b|rosso|tinto|noir|syrah|shiraz|gamay|cabernet|merlot|blaufr|zweigelt|grenache|pinot noir/.test(t)) return "red";
+      return "other";
+    };
+
+    const formatPrice = (raw) => {
+      const n = Number(String(raw || "").replace(/[^0-9.]/g, ""));
+      if (!Number.isFinite(n) || n < 2) return "";
+      return `$${Math.round(n)}`;
+    };
+
+    const noteText = (row) => {
+      const t = String(row["Tasting Notes"] || "").trim();
+      if (t.length > 24 && !/^\d{4}$/.test(t) && t.toLowerCase() !== "tasting notes") return t;
+      return "";
+    };
+
+    const isKeg = (row) => {
+      const size = String(row.Size || "").replace(/\s+/g, "").toLowerCase();
+      const name = String(row.Wine || "").toLowerCase();
+      return /20\.?0?l/.test(size) || name.includes("keg");
+    };
+
+    const observeReveals = (root = document) => {
+      const nodes = root.querySelectorAll(".reveal:not(.is-in)");
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("is-in"); });
+        }, { threshold: 0.12 });
+        nodes.forEach((el) => io.observe(el));
+      } else {
+        nodes.forEach((el) => el.classList.add("is-in"));
+      }
+    };
+
+    const highlight = (text, query) => {
+      const safe = escapeHtml(text ?? "");
+      const toks = [...new Set(String(query || "").trim().split(/\s+/).filter(Boolean))];
+      if (!toks.length) return safe;
+      const pattern = toks
+        .sort((a, b) => b.length - a.length)
+        .map((tok) => tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .join("|");
+      return safe.replace(new RegExp(`(${pattern})`, "gi"), "<mark>$1</mark>");
+    };
+
+    const searchTokens = () => String(wineSearch?.value || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+
+    const wineHaystack = (row, cat, note, price) => [
+      row.Wine,
+      row.Producer,
+      prettyName(row.Producer),
+      row["Region/Sub Region"],
+      row.Vintage,
+      row.Size,
+      row["Item Code"],
+      note,
+      price,
+      CAT_LABEL[cat],
+    ].filter(Boolean).join(" ").toLowerCase();
+
+    const wineCard = (row) => {
+      const cat = wineCategory(row);
+      const region = prettyName(row["Region/Sub Region"]);
+      const vintage = String(row.Vintage || "").trim();
+      const size = String(row.Size || "").replace(/\s+/g, "").toLowerCase();
+      const magnum = /1\.5l|1500ml/.test(size) || /magnum/i.test(row.Wine || "");
+      const metaLeft = [region, vintage, magnum ? "Magnum" : ""].filter(Boolean).join(" · ");
+      const note = noteText(row);
+      const price = formatPrice(row["UT Per BTL"]);
+      const producer = prettyName(row.Producer);
+      const catLabel = CAT_LABEL[cat] || "Wine";
+      return `<article class="wine reveal" data-cat="${cat}" data-search="${escapeHtml(wineHaystack(row, cat, note, price))}">
+        <div class="swatch" style="background:${SWATCH[cat] || SWATCH.other}"></div>
+        <div class="wine-meta"><span data-original="${escapeHtml(metaLeft)}">${escapeHtml(metaLeft)}</span><span data-original="${escapeHtml(catLabel)}">${escapeHtml(catLabel)}</span></div>
+        <h3 data-original="${escapeHtml(row.Wine)}">${escapeHtml(row.Wine)}</h3>
+        <p class="producer" data-original="${escapeHtml(producer)}">${escapeHtml(producer)}</p>
+        ${note ? `<p data-original="${escapeHtml(note)}">${escapeHtml(note)}</p>` : "<p></p>"}
+        <div class="wine-foot">${price ? `<span class="price" data-original="${escapeHtml(price)}">${escapeHtml(price)}</span>` : "<span></span>"} <a class="inquire" href="#visit">Inquire</a></div>
+      </article>`;
+    };
+
+    const uniqueGrowers = (rows) => {
+      const map = new Map();
+      rows.forEach((row) => {
+        const name = String(row.Producer || "").trim();
+        if (!name) return;
+        const entry = map.get(name) || { name, region: row["Region/Sub Region"] || "", count: 0 };
+        entry.count += 1;
+        if (!entry.region) entry.region = row["Region/Sub Region"] || "";
+        map.set(name, entry);
       });
+      return [...map.values()].sort((a, b) => prettyName(a.name).localeCompare(prettyName(b.name)));
+    };
+
+    const growerCard = (grower) => {
+      const countLabel = grower.count === 1 ? "1 wine on the current list" : `${grower.count} wines on the current list`;
+      return `<article class="grower-card reveal">
+        <p class="place">${escapeHtml(prettyName(grower.region).replace(/[()]/g, "").trim())}</p>
+        <h3>${escapeHtml(prettyName(grower.name))}</h3>
+        <p>${escapeHtml(countLabel)}</p>
+      </article>`;
+    };
+
+    const PREVIEW_LIMIT = 12;
+    let showAllWines = false;
+    let showAllGrowers = false;
+    const wineMore = document.getElementById("wine-more");
+    const growerMore = document.getElementById("grower-more");
+    const showAllWinesBtn = document.getElementById("showAllWines");
+    const showAllGrowersBtn = document.getElementById("showAllGrowers");
+
+    const currentFilter = () => document.querySelector(".filters .chip[aria-pressed='true']")?.dataset.filter || "all";
+
+    const applyHighlights = (wine, query) => {
+      wine.querySelectorAll("[data-original]").forEach((el) => {
+        el.innerHTML = highlight(el.dataset.original, query);
+      });
+    };
+
+    const applyWineVisibility = () => {
+      const filter = currentFilter();
+      const toks = searchTokens();
+      const query = wineSearch.value.trim();
+      let shown = 0;
+      let matched = 0;
+      document.querySelectorAll("#wine-grid .wine").forEach((wine) => {
+        const catMatch = filter === "all" || wine.dataset.cat === filter;
+        const hay = wine.dataset.search || "";
+        const textMatch = !toks.length || toks.every((tok) => hay.includes(tok));
+        const match = catMatch && textMatch;
+        if (match) matched += 1;
+        const hide = !match || (!showAllWines && !toks.length && shown >= PREVIEW_LIMIT);
+        if (match && !hide) shown += 1;
+        wine.classList.toggle("is-hidden", hide);
+        applyHighlights(wine, match ? query : "");
+      });
+      wineEmpty.hidden = matched !== 0;
+      if (matched > PREVIEW_LIMIT && !toks.length) {
+        wineMore.hidden = false;
+        showAllWinesBtn.textContent = showAllWines ? "Show fewer wines" : `Show all ${matched} wines`;
+      } else {
+        wineMore.hidden = true;
+        if (!toks.length) showAllWines = false;
+      }
+    };
+
+    const applyGrowerVisibility = () => {
+      const cards = document.querySelectorAll("#grower-grid .grower-card");
+      cards.forEach((card, index) => {
+        card.classList.toggle("is-hidden", !showAllGrowers && index >= PREVIEW_LIMIT);
+      });
+      if (cards.length > PREVIEW_LIMIT) {
+        growerMore.hidden = false;
+        showAllGrowersBtn.textContent = showAllGrowers ? "Show fewer growers" : `Show all ${cards.length} growers`;
+      } else {
+        growerMore.hidden = true;
+        showAllGrowers = false;
+      }
+    };
+
+    filters.addEventListener("click", (event) => {
+      const chip = event.target.closest(".chip");
+      if (!chip) return;
+      chips.forEach((c) => c.setAttribute("aria-pressed", "false"));
+      chip.setAttribute("aria-pressed", "true");
+      showAllWines = false;
+      applyWineVisibility();
     });
 
-    if ("IntersectionObserver" in window) {
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("is-in"); });
-      }, { threshold: 0.12 });
-      document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
-    } else {
-      document.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-in"));
-    }
+    wineSearch.addEventListener("input", () => {
+      showAllWines = false;
+      applyWineVisibility();
+    });
+
+    showAllWinesBtn.addEventListener("click", () => {
+      showAllWines = !showAllWines;
+      applyWineVisibility();
+      if (showAllWines) return;
+      wineGrid.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    showAllGrowersBtn.addEventListener("click", () => {
+      showAllGrowers = !showAllGrowers;
+      applyGrowerVisibility();
+      if (showAllGrowers) return;
+      growerGrid.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    const loadCatalog = async () => {
+      let rows = [];
+      for (const url of CATALOG_URLS) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const json = await res.json();
+          if (Array.isArray(json?.data) && json.data.length) {
+            rows = json.data;
+            break;
+          }
+        } catch {
+          /* try next source */
+        }
+      }
+      if (!rows.length) {
+        wineGrid.innerHTML = `<p class="catalog-status">The current list could not be loaded. Try again shortly.</p>`;
+        growerGrid.innerHTML = `<p class="catalog-status">Growers could not be loaded.</p>`;
+        return;
+      }
+      const wines = rows.filter((row) => String(row.Wine || "").trim() && !isKeg(row));
+      const growers = uniqueGrowers(wines);
+      growerCount.textContent = String(growers.length);
+      wineGrid.innerHTML = wines.map(wineCard).join("");
+      growerGrid.innerHTML = growers.map(growerCard).join("");
+      showAllWines = false;
+      showAllGrowers = false;
+      applyWineVisibility();
+      applyGrowerVisibility();
+      observeReveals(wineGrid);
+      observeReveals(growerGrid);
+    };
+
+    loadCatalog();
+    observeReveals();
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
