@@ -10,6 +10,7 @@ import {
   loadSections,
   loadCSS,
   buildBlock,
+  decorateBlock,
 } from './aem.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -70,6 +71,7 @@ function buildWidgetAutoBlocks(main) {
     } else {
       link.replaceWith(widgetBlock);
     }
+    decorateBlock(widgetBlock);
   });
 }
 
@@ -96,7 +98,6 @@ function buildAutoBlocks(main) {
         });
       });
     }
-    buildWidgetAutoBlocks(main);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Auto Blocking failed', error);
@@ -111,14 +112,15 @@ function decorateButtons(main) {
   main.querySelectorAll('p a[href]').forEach((a) => {
     a.title = a.title || a.textContent;
     const p = a.closest('p');
-    const text = a.textContent.trim();
+    if (!p || a.querySelector('img')) return;
 
-    // quick structural checks
-    if (a.querySelector('img') || p.textContent.trim() !== text) return;
+    const leftover = p.cloneNode(true);
+    leftover.querySelectorAll('a, strong, em, br').forEach((node) => node.remove());
+    if (leftover.textContent.trim()) return;
 
     // skip URL display links
     try {
-      if (new URL(a.href).href === new URL(text, window.location).href) return;
+      if (new URL(a.href).href === new URL(a.textContent.trim(), window.location).href) return;
     } catch { /* continue */ }
 
     // require authored formatting for buttonization
@@ -126,7 +128,7 @@ function decorateButtons(main) {
     const em = a.closest('em');
     if (!strong && !em) return;
 
-    p.className = 'button-wrapper';
+    p.classList.add('button-wrapper');
     a.className = 'button';
     if (strong && em) { // high-impact call-to-action
       a.classList.add('accent');
@@ -143,6 +145,34 @@ function decorateButtons(main) {
 }
 
 /**
+ * Marks a short paragraph sitting on top of a heading as a kicker when it is
+ * the first content in a section or a block cell.
+ * @param {Element} main The main container element
+ */
+function decorateKickers(main) {
+  main.querySelectorAll('p').forEach((p) => {
+    if (p.classList.contains('kicker') || p.querySelector('a')) return;
+    const heading = p.nextElementSibling;
+    if (!heading || !/^H[1-6]$/.test(heading.tagName)) return;
+    if (p.previousElementSibling) return;
+    if (p.textContent.trim().length > 80) return;
+
+    const parent = p.parentElement;
+    if (!parent) return;
+    const isSectionTop = parent.classList.contains('default-content-wrapper')
+      || parent.classList.contains('section');
+    const isBlockCell = parent.parentElement?.parentElement?.classList.contains('block');
+    if (!isSectionTop && !isBlockCell) return;
+
+    p.classList.add('kicker');
+    const strong = p.querySelector(':scope > strong');
+    if (strong && p.textContent.trim() === strong.textContent.trim()) {
+      strong.replaceWith(...strong.childNodes);
+    }
+  });
+}
+
+/**
  * Decorates the main element.
  * @param {Element} main The main element
  */
@@ -152,6 +182,8 @@ export function decorateMain(main) {
   buildAutoBlocks(main);
   decorateSections(main);
   decorateBlocks(main);
+  buildWidgetAutoBlocks(main);
+  decorateKickers(main);
   decorateButtons(main);
 }
 

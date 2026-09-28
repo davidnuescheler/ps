@@ -1,20 +1,78 @@
 footer {
-  background-color: var(--light-color);
-  font-size: var(--body-font-size-xs);
+  position: relative;
+  z-index: 1;
+  background: var(--ink);
+  color: var(--foam);
+  margin-top: 2rem;
 }
 
-footer .footer > div {
+footer .footer {
+  box-sizing: border-box;
+  max-width: var(--content-width);
   margin: auto;
-  max-width: 1200px;
-  padding: 40px 24px 24px;
+  padding: 3.5rem 1.25rem 1.5rem;
 }
 
 footer .footer p {
   margin: 0;
 }
 
+footer .footer a:any-link {
+  color: rgba(250, 247, 242, 0.78);
+  text-decoration: none;
+}
+
+footer .footer a:hover,
+footer .footer a:focus-visible {
+  color: var(--clay);
+}
+
+footer .footer-content {
+  display: grid;
+  gap: 2rem;
+}
+
+footer .footer-brand,
+footer .footer-links,
+footer .footer-contact {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+}
+
+footer .footer-brand strong {
+  font-family: var(--heading-font-family);
+  font-size: 1.4rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+footer .footer-brand p {
+  max-width: 36ch;
+  color: rgba(250, 247, 242, 0.7);
+}
+
+footer .footer-brand p:has(strong) {
+  color: inherit;
+}
+
+footer .footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid rgba(250, 247, 242, 0.12);
+  color: rgba(250, 247, 242, 0.5);
+  font-size: 0.82rem;
+}
+
 @media (width >= 900px) {
-  footer .footer > div {
-    padding: 40px 32px 24px;
+  footer .footer-content {
+    grid-template-columns: 1.3fr 1fr 1fr;
+  }
+
+  footer .footer-legal {
+    grid-column: 1 / -1;
   }
 }

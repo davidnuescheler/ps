@@ -1,0 +1,70 @@
+.producers .producers-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.producers .producers-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 2rem 0;
+  color: var(--muted);
+}
+
+.producers .grower-card {
+  padding: 1.3rem 1.2rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--foam) 55%, transparent);
+  transition: 0.35s var(--ease);
+}
+
+.producers .grower-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--wine) 40%, var(--line));
+}
+
+.producers .grower-card.is-hidden {
+  display: none;
+}
+
+.producers .grower-card .place {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wine);
+}
+
+.producers .grower-card h3 {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.producers .grower-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.producers .producers-more {
+  display: flex;
+  justify-content: center;
+  margin: 1.4rem 0 0;
+}
+
+.producers .producers-more[hidden] {
+  display: none;
+}
+
+@media (width >= 600px) {
+  .producers .producers-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (width >= 900px) {
+  .producers .producers-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

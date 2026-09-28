@@ -1,33 +1,296 @@
 .columns > div {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  gap: 2rem;
 }
 
 .columns img {
   width: 100%;
 }
 
-.columns > div > div {
-  order: 1;
-}
-
-.columns > div > .columns-img-col {
-  order: 0;
-}
-
 .columns > div > .columns-img-col img {
   display: block;
+}
+
+.columns h1 {
+  font-size: clamp(3.1rem, 7vw, 6.4rem);
+  font-weight: 300;
+  max-width: 8em;
+  margin: 0.6rem 0 1.1rem;
+}
+
+.columns h1 em {
+  font-style: italic;
+  font-synthesis: none;
+  white-space: nowrap;
+  color: var(--wine);
+}
+
+.columns h1 + p {
+  font-size: 1.12rem;
+  max-width: 38ch;
+  color: var(--ink-soft);
+  margin: 0 0 1.8rem;
+}
+
+.columns h2 {
+  font-size: clamp(2.1rem, 4vw, 3.4rem);
+  font-weight: 300;
+  margin: 0.35rem 0 0.8rem;
+}
+
+.columns h2 strong {
+  font-weight: inherit;
+}
+
+.columns .kicker + h2 + p {
+  max-width: 38ch;
+  color: var(--ink-soft);
+}
+
+.columns .button-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.columns:has(.columns-img-col) p:not(.kicker, .columns-img-caption) {
+  font-size: 1.08rem;
+  color: var(--ink-soft);
+}
+
+.columns:has(.columns-img-col) h2 {
+  font-family: var(--heading-font-family);
+  font-size: clamp(1.6rem, 2.6vw, 2.15rem);
+  font-weight: 300;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin: 0.35rem 0 1rem;
+}
+
+.columns-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
+}
+
+.columns-stats li {
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.columns-stats strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-family: var(--heading-font-family);
+  font-size: 1.8rem;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.columns-img-col {
+  position: relative;
+  overflow: hidden;
+  border-radius: calc(var(--radius) + 0.4rem);
+  aspect-ratio: 4 / 5;
+  box-shadow: var(--shadow);
+}
+
+.columns-img-col picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.columns-img-col img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+  transition: transform 1.4s var(--ease);
+}
+
+.columns-img-col:hover img {
+  transform: scale(1.1);
+}
+
+.columns-img-caption {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  color: var(--foam);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.columns-accordion {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.columns-std {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.2rem 1.1rem;
+  background: color-mix(in srgb, var(--foam) 70%, transparent);
+}
+
+.columns-std summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  font-family: var(--heading-font-family);
+  font-size: 1.35rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.columns-std summary::-webkit-details-marker,
+.columns-std summary::marker {
+  display: none;
+  content: "";
+}
+
+.columns-std summary::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  border-right: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
+  transform: rotate(45deg);
+  transition: transform 0.3s var(--ease);
+}
+
+.columns-std[open] summary::after {
+  transform: rotate(225deg);
+}
+
+.columns-std p {
+  margin: 0 0 1.1rem;
+  max-width: 52ch;
+  color: var(--ink-soft);
+}
+
+.columns-icon-col {
+  display: grid;
+  place-items: center;
+  position: relative;
+  min-height: 200px;
+}
+
+.columns-icon-col::before {
+  content: "";
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(122, 36, 54, 0.22), transparent 68%);
+  filter: blur(12px);
+  animation: columns-pulse 6s ease-in-out infinite;
+}
+
+.columns-icon-col .icon {
+  display: block;
+  width: min(150px, 40vw);
+  height: auto;
+  position: relative;
+  color: var(--ink);
+  animation: columns-float 7.5s ease-in-out 1.5s infinite;
+  filter: drop-shadow(0 24px 30px rgba(22, 18, 16, 0.12));
+}
+
+.columns-icon-col .icon img,
+.columns-icon-col .icon svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.columns-icon-col .stone {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: columns-settle 1.15s var(--ease) both;
+}
+
+.columns-icon-col .stone-1 { animation-delay: 0.08s; }
+.columns-icon-col .stone-2 { animation-delay: 0.22s; }
+.columns-icon-col .stone-3 { animation-delay: 0.38s; }
+.columns-icon-col .stone-4 { animation-delay: 0.54s; }
+
+@keyframes columns-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+@keyframes columns-settle {
+  from { opacity: 0; transform: translateY(-42px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes columns-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@media (width < 600px) {
+  .columns-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (width < 900px) {
+  .columns-icon-col {
+    order: -1;
+  }
 }
 
 @media (width >= 900px) {
   .columns > div {
     align-items: center;
-    flex-direction: unset;
-    gap: 24px;
+    gap: 3rem;
   }
 
-  .columns > div > div {
-    flex: 1;
-    order: unset;
+  .columns-2-cols > div {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .columns:has(h1).columns-2-cols > div {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+
+  .columns:has(.columns-img-col).columns-2-cols > div {
+    grid-template-columns: 1.05fr 0.95fr;
+  }
+
+  .columns:has(.columns-accordion) > div {
+    align-items: start;
+  }
+
+  .columns:has(.columns-accordion).columns-2-cols > div {
+    grid-template-columns: 0.9fr 1.1fr;
+  }
+
+  .columns-icon-col {
+    min-height: 420px;
+  }
+
+  .columns-icon-col .icon {
+    width: min(280px, 58vw);
   }
 }

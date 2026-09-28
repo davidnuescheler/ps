@@ -1,0 +1,47 @@
+.banner > div {
+  position: relative;
+  display: flex;
+  align-items: end;
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: calc(var(--radius) + 0.3rem);
+  padding: 1.5rem;
+  color: var(--foam);
+  background: linear-gradient(180deg, rgba(22, 18, 16, 0.08), rgba(22, 18, 16, 0.55));
+  box-shadow: var(--shadow);
+}
+
+.banner > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(22, 18, 16, 0.08), rgba(22, 18, 16, 0.35));
+  pointer-events: none;
+}
+
+.banner-media {
+  position: absolute;
+  inset: 0;
+}
+
+.banner-media picture,
+.banner-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.banner-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.banner-copy p {
+  margin: 0;
+  font-family: var(--heading-font-family);
+  font-size: 1.8rem;
+  font-weight: 300;
+  max-width: 16ch;
+  line-height: 1.15;
+}

@@ -1,0 +1,22 @@
+<form class="contact-form" method="POST">
+  <input type="hidden" name="_subject" value="Public Sediments inquiry">
+  <input type="hidden" name="_template" value="table">
+  <input type="hidden" name="_captcha" value="false">
+  <input class="contact-honey" type="text" name="_honey" tabindex="-1" autocomplete="off">
+  <label>
+    <span>Name</span>
+    <input name="name" autocomplete="name" required>
+  </label>
+  <label>
+    <span>Email</span>
+    <input name="email" type="email" autocomplete="email" required>
+  </label>
+  <label>
+    <span>What are you looking for?</span>
+    <textarea name="note" rows="3" placeholder="Allocation, a mixed case, a restaurant book…"></textarea>
+  </label>
+  <p class="button-wrapper">
+    <button type="submit" class="button primary">Send inquiry</button>
+  </p>
+  <p class="contact-note" role="status"></p>
+</form>
