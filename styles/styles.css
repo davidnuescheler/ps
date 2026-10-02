@@ -239,6 +239,7 @@ a:hover {
   font-family: var(--body-font-family);
   color: var(--wine);
   line-height: 1;
+  scroll-margin: calc(var(--nav-height) - 8px);
 }
 
 .kicker strong {

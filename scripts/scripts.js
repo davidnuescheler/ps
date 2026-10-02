@@ -11,6 +11,7 @@ import {
   loadCSS,
   buildBlock,
   decorateBlock,
+  toClassName,
 } from './aem.js';
 
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
@@ -169,6 +170,9 @@ function decorateKickers(main) {
     if (strong && p.textContent.trim() === strong.textContent.trim()) {
       strong.replaceWith(...strong.childNodes);
     }
+
+    const id = toClassName(p.textContent) || heading.id;
+    if (id && !document.getElementById(id)) p.id = id;
   });
 }
 
