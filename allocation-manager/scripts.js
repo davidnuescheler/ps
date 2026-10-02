@@ -10,6 +10,16 @@ import {
   shiftMonth,
 } from './logger.js';
 import { catalogSeedEvents, monthSeedEvents } from './seed.js';
+import {
+  CAT_LABEL,
+  formatPrice,
+  highlight,
+  loadCatalog,
+  parseMoney,
+  prettyName,
+  wineCategory,
+  wineHaystack,
+} from '../scripts/catalog.js';
 
 const state = {
   month: monthKey(),
@@ -19,6 +29,8 @@ const state = {
   wineId: null,
   showEmpty: false,
   source: 'server',
+  list: [],
+  pickerKey: '',
 };
 
 const timers = new Map();
@@ -194,6 +206,7 @@ function replayCatalog(changelog) {
         appellation: event.appellation || '',
         color: event.color || 'red',
         format: event.format || '',
+        itemCode: event.itemCode || '',
       });
       if (!wineOrder.includes(event.id)) wineOrder.push(event.id);
     } else if (event.op === 'wine_updated' && wines.has(event.id)) {
@@ -205,6 +218,7 @@ function replayCatalog(changelog) {
         color: event.color ?? wine.color,
         format: event.format ?? wine.format,
         producerId: event.producerId ?? wine.producerId,
+        itemCode: event.itemCode ?? wine.itemCode,
       });
     } else if (event.op === 'wine_removed') {
       wines.delete(event.id);
@@ -359,13 +373,6 @@ function renderLists(data) {
   `).join('');
 }
 
-function fillWineProducerSelect(data) {
-  const select = document.getElementById('wineProducer');
-  select.innerHTML = data.producers.map((producer) => `
-    <option value="${escapeHtml(producer.id)}" ${producer.id === state.producerId ? 'selected' : ''}>${escapeHtml(producer.name)}</option>
-  `).join('');
-}
-
 function renderBoard(data, producer, wine) {
   if (!producer) {
     boardEl.innerHTML = '<div class="empty">No producers yet. Add the book, then allot wines for the month.</div>';
@@ -424,7 +431,6 @@ function renderBoard(data, producer, wine) {
       </div>
       <p class="overview-remain ${remaining < -0.001 ? 'is-over' : ''}">${remainCopy}</p>
       <div class="overview-price">
-        <label>WS <input class="price" data-wholesale="${wine.id}" type="number" min="0" step="1" value="${allot.wholesale || ''}" placeholder="—"></label>
         <label>RT <input class="price" data-retail="${wine.id}" type="number" min="0" step="1" value="${allot.retail || ''}" placeholder="—"></label>
       </div>
     </article>
@@ -443,7 +449,6 @@ function render() {
   renderWineNav(wines, producer);
   renderBoard(data, producer, wine);
   renderLists(data);
-  fillWineProducerSelect(data);
 }
 
 async function persistAllotment(wineId, patch) {
@@ -497,10 +502,7 @@ function onBoardInput(event) {
     }
     return;
   }
-  if (target.dataset.wholesale) {
-    const wineId = target.dataset.wholesale;
-    debounce(`ws-${wineId}`, () => persistAllotment(wineId, { wholesale: Number(target.value) || 0 }));
-  } else if (target.dataset.retail) {
+  if (target.dataset.retail) {
     const wineId = target.dataset.retail;
     debounce(`rt-${wineId}`, () => persistAllotment(wineId, { retail: Number(target.value) || 0 }));
   }
@@ -555,8 +557,12 @@ async function loadAll() {
   setSync('syncing');
   boardEl.innerHTML = '<div class="loading">Loading allocations…</div>';
   try {
-    const catalog = await loadEvents(catalogUrl());
+    const [catalog, list] = await Promise.all([
+      loadEvents(catalogUrl()),
+      loadCatalog(),
+    ]);
     state.catalog = catalog.events;
+    state.list = list;
     state.source = catalog.source;
 
     let data = model();
@@ -597,6 +603,247 @@ async function loadAll() {
   }
 }
 
+function foldName(value) {
+  return prettyName(value)
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function namesMatch(a, b) {
+  const fa = foldName(a);
+  const fb = foldName(b);
+  if (!fa || !fb) return false;
+  if (fa === fb) return true;
+  const [short, long] = fa.length <= fb.length ? [fa, fb] : [fb, fa];
+  return short.length >= 8 && long.includes(short);
+}
+
+function formatFromRow(row) {
+  const size = String(row.Size || '').replace(/\s+/g, '').toLowerCase();
+  const name = row.Wine || '';
+  if (/1\.5l|1500ml/.test(size) || /magnum/i.test(name)) return 'magnum';
+  return String(row.Size || '').trim();
+}
+
+function colorForName(name) {
+  const palette = ['#7a2436', '#c48a2a', '#6b3a5a', '#2c4a6e', '#44513d', '#9a6a42', '#4a1420', '#6d7b63'];
+  const key = foldName(name);
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) % 997;
+  return palette[hash % palette.length];
+}
+
+function wineIdFor(row) {
+  const code = String(row['Item Code'] || '').trim();
+  if (!code) return generateId();
+  return `wine-${code.replace(/[^0-9A-Za-z]+/g, '-')}`.replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+function rowKey(row) {
+  return [
+    String(row['Item Code'] || '').trim(),
+    String(row.Producer || '').trim(),
+    String(row.Wine || '').trim(),
+    String(row.Vintage || '').trim(),
+    String(row.Size || '').trim(),
+  ].join('\u001f');
+}
+
+function findProducerForRow(data, row) {
+  return data.producers.find((producer) => namesMatch(producer.name, row.Producer)) || null;
+}
+
+function findExistingWine(data, row) {
+  const code = String(row['Item Code'] || '').trim();
+  if (code) {
+    const byCode = data.wines.find((wine) => wine.itemCode === code || wine.id === `wine-${code}` || wine.id === wineIdFor(row));
+    if (byCode) return byCode;
+  }
+  const producer = findProducerForRow(data, row);
+  const vintage = String(row.Vintage || '').trim();
+  return data.wines.find((wine) => {
+    if (vintage && String(wine.vintage || '').trim() !== vintage) return false;
+    if (producer && wine.producerId !== producer.id) return false;
+    if (!producer && !namesMatch(data.producers.find((item) => item.id === wine.producerId)?.name, row.Producer)) return false;
+    return namesMatch(wine.name, row.Wine);
+  }) || null;
+}
+
+function pickerEls() {
+  return {
+    filters: document.getElementById('winePickerFilters'),
+    search: document.getElementById('winePickerSearch'),
+    empty: document.getElementById('winePickerEmpty'),
+    list: document.getElementById('winePickerList'),
+    selected: document.getElementById('winePickerSelected'),
+    save: document.getElementById('wineSave'),
+  };
+}
+
+function currentPickerFilter() {
+  return document.querySelector('#winePickerFilters .picker-chip[aria-pressed="true"]')?.dataset.filter || 'all';
+}
+
+function selectedPickerRow() {
+  if (!state.pickerKey) return null;
+  return state.list.find((row) => rowKey(row) === state.pickerKey) || null;
+}
+
+function applyPickerFilter() {
+  const { search, empty, list } = pickerEls();
+  const tag = currentPickerFilter();
+  const query = search?.value.trim() || '';
+  const toks = query.toLowerCase().split(/\s+/).filter(Boolean);
+  let matched = 0;
+  list.querySelectorAll('.picker-wine').forEach((el) => {
+    const catMatch = tag === 'all' || el.dataset.cat === tag;
+    const hay = el.dataset.search || '';
+    const textMatch = !toks.length || toks.every((tok) => hay.includes(tok));
+    const match = catMatch && textMatch;
+    if (match) matched += 1;
+    el.hidden = !match;
+    el.querySelectorAll('[data-original]').forEach((node) => {
+      node.innerHTML = highlight(node.dataset.original, match ? query : '');
+    });
+  });
+  empty.hidden = matched !== 0;
+}
+
+function fillAllotmentFields(row) {
+  const data = model();
+  const existing = row ? findExistingWine(data, row) : null;
+  const allot = existing ? data.allotments.get(existing.id) : null;
+  document.getElementById('wineCases').value = allot ? allot.cases : 1;
+  document.getElementById('wineRetail').value = allot?.retail || parseMoney(row?.['UT Retail']) || '';
+}
+
+function selectPickerRow(row) {
+  const { list, selected, save } = pickerEls();
+  state.pickerKey = row ? rowKey(row) : '';
+  list.querySelectorAll('.picker-wine').forEach((el) => {
+    el.setAttribute('aria-selected', String(el.dataset.key === state.pickerKey));
+  });
+  if (!row) {
+    selected.textContent = 'Pick a wine from the current list.';
+    save.disabled = true;
+    fillAllotmentFields(null);
+    return;
+  }
+  const producer = prettyName(row.Producer);
+  const wine = prettyName(row.Wine);
+  const vintage = String(row.Vintage || '').trim();
+  selected.textContent = [vintage, wine, '·', producer].filter(Boolean).join(' ');
+  save.disabled = false;
+  fillAllotmentFields(row);
+}
+
+function renderPickerList() {
+  const { list } = pickerEls();
+  const data = model();
+  const current = data.producers.find((producer) => producer.id === state.producerId);
+  const rows = [...state.list].sort((a, b) => {
+    if (current) {
+      const aMatch = namesMatch(a.Producer, current.name) ? 0 : 1;
+      const bMatch = namesMatch(b.Producer, current.name) ? 0 : 1;
+      if (aMatch !== bMatch) return aMatch - bMatch;
+    }
+    const byProducer = prettyName(a.Producer).localeCompare(prettyName(b.Producer));
+    if (byProducer) return byProducer;
+    return prettyName(a.Wine).localeCompare(prettyName(b.Wine));
+  });
+
+  if (!rows.length) {
+    list.innerHTML = '<p class="picker-status">The current list could not be loaded. Try again shortly.</p>';
+    return;
+  }
+
+  list.innerHTML = rows.map((row) => {
+    const cat = wineCategory(row);
+    const existing = findExistingWine(data, row);
+    const onMonth = existing && data.allotments.has(existing.id);
+    const producer = prettyName(row.Producer);
+    const wine = prettyName(row.Wine);
+    const region = prettyName(row['Region/Sub Region']);
+    const vintage = String(row.Vintage || '').trim();
+    const format = formatFromRow(row);
+    const price = formatPrice(row['UT Per BTL']);
+    const meta = [region, vintage, format === 'magnum' ? 'Magnum' : ''].filter(Boolean).join(' · ');
+    const note = onMonth ? 'On this month' : existing ? 'On the book' : '';
+    const key = rowKey(row);
+    return `
+      <button type="button" class="picker-wine" role="option" data-key="${escapeHtml(key)}" data-cat="${cat}" data-search="${escapeHtml(wineHaystack(row, cat, '', price))}" aria-selected="${key === state.pickerKey}">
+        <span class="picker-swatch cat-${cat}" aria-hidden="true"></span>
+        <span class="picker-copy">
+          <span class="picker-name" data-original="${escapeHtml(wine)}">${escapeHtml(wine)}</span>
+          <span class="picker-meta">
+            <span data-original="${escapeHtml(producer)}">${escapeHtml(producer)}</span>
+            ${meta ? `<span data-original="${escapeHtml(meta)}">${escapeHtml(meta)}</span>` : ''}
+            <span>${escapeHtml(CAT_LABEL[cat] || 'Wine')}</span>
+          </span>
+        </span>
+        <span class="picker-side">
+          ${price ? `<span class="picker-price" data-original="${escapeHtml(price)}">${escapeHtml(price)}</span>` : ''}
+          ${note ? `<span class="picker-badge">${note}</span>` : ''}
+        </span>
+      </button>
+    `;
+  }).join('');
+  applyPickerFilter();
+}
+
+async function openWineDialog() {
+  state.pickerKey = '';
+  const { filters, search, save, list } = pickerEls();
+  filters.querySelectorAll('.picker-chip').forEach((chip) => {
+    chip.setAttribute('aria-pressed', String(chip.dataset.filter === 'all'));
+  });
+  search.value = '';
+  save.disabled = true;
+  list.innerHTML = '<p class="picker-status">Loading the current list…</p>';
+  selectPickerRow(null);
+  wineDialog.showModal();
+  search.focus();
+  if (!state.list.length) state.list = await loadCatalog();
+  renderPickerList();
+}
+
+async function addCatalogWine(row, allotment) {
+  const data = model();
+  const existing = findExistingWine(data, row);
+  let producerId = existing?.producerId || findProducerForRow(data, row)?.id;
+  if (!producerId) {
+    producerId = generateId();
+    await save('catalog', {
+      op: 'producer_added',
+      id: producerId,
+      name: prettyName(row.Producer),
+      region: prettyName(row['Region/Sub Region']).replace(/[()]/g, '').trim(),
+      color: colorForName(row.Producer),
+    });
+  }
+  const wineId = existing?.id || wineIdFor(row);
+  if (!existing) {
+    await save('catalog', {
+      op: 'wine_added',
+      id: wineId,
+      producerId,
+      name: prettyName(row.Wine),
+      vintage: String(row.Vintage || '').trim(),
+      color: wineCategory(row),
+      appellation: prettyName(row['Region/Sub Region']),
+      format: formatFromRow(row),
+      itemCode: String(row['Item Code'] || '').trim(),
+    });
+  }
+  state.producerId = producerId;
+  state.wineId = wineId;
+  await persistAllotment(wineId, allotment);
+}
+
 function bind() {
   document.getElementById('prevMonth').addEventListener('click', async () => {
     state.month = shiftMonth(state.month, -1);
@@ -631,31 +878,35 @@ function bind() {
     render();
   });
 
-  document.getElementById('addWineBtn').addEventListener('click', () => wineDialog.showModal());
+  document.getElementById('addWineBtn').addEventListener('click', openWineDialog);
   document.getElementById('wineCancel').addEventListener('click', () => wineDialog.close());
+  document.getElementById('winePickerFilters').addEventListener('click', (event) => {
+    const chip = event.target.closest('.picker-chip');
+    if (!chip) return;
+    document.querySelectorAll('#winePickerFilters .picker-chip').forEach((item) => {
+      item.setAttribute('aria-pressed', 'false');
+    });
+    chip.setAttribute('aria-pressed', 'true');
+    applyPickerFilter();
+  });
+  document.getElementById('winePickerSearch').addEventListener('input', applyPickerFilter);
+  document.getElementById('winePickerList').addEventListener('click', (event) => {
+    const button = event.target.closest('.picker-wine');
+    if (!button) return;
+    const row = state.list.find((item) => rowKey(item) === button.dataset.key);
+    if (row) selectPickerRow(row);
+  });
   document.getElementById('wineForm').addEventListener('submit', async (event) => {
     event.preventDefault();
-    const id = generateId();
-    const producerId = document.getElementById('wineProducer').value;
-    state.producerId = producerId;
-    state.wineId = id;
-    await save('catalog', {
-      op: 'wine_added',
-      id,
-      producerId,
-      name: document.getElementById('wineName').value.trim(),
-      vintage: document.getElementById('wineVintage').value.trim(),
-      color: document.getElementById('wineColor').value,
-      appellation: document.getElementById('wineAppellation').value.trim(),
-      format: document.getElementById('wineFormat').value.trim(),
-    });
-    await persistAllotment(id, {
+    const row = selectedPickerRow();
+    if (!row) return;
+    await addCatalogWine(row, {
       cases: Number(document.getElementById('wineCases').value) || 0,
-      wholesale: Number(document.getElementById('wineWholesale').value) || 0,
       retail: Number(document.getElementById('wineRetail').value) || 0,
     });
     wineDialog.close();
     event.target.reset();
+    selectPickerRow(null);
   });
 
   document.getElementById('addCustomerBtn').addEventListener('click', () => customerDialog.showModal());

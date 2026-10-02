@@ -86,58 +86,35 @@
 
   <dialog id="wineDialog">
     <h2>Add wine</h2>
+    <div class="picker-filters" id="winePickerFilters" role="toolbar" aria-label="Filter wines">
+      <button type="button" class="picker-chip" data-filter="all" aria-pressed="true">All</button>
+      <button type="button" class="picker-chip" data-filter="skin" aria-pressed="false">Skin contact</button>
+      <button type="button" class="picker-chip" data-filter="red" aria-pressed="false">Red</button>
+      <button type="button" class="picker-chip" data-filter="white" aria-pressed="false">White</button>
+      <button type="button" class="picker-chip" data-filter="rose" aria-pressed="false">Rosé</button>
+      <button type="button" class="picker-chip" data-filter="sparkling" aria-pressed="false">Sparkling</button>
+      <label class="picker-search">
+        <span class="picker-search-icon" aria-hidden="true"></span>
+        <input id="winePickerSearch" type="search" placeholder="Search the list" autocomplete="off" spellcheck="false">
+      </label>
+    </div>
+    <p class="picker-empty" id="winePickerEmpty" hidden>No wines match that search.</p>
+    <div class="picker-list" id="winePickerList" role="listbox" aria-label="Current list"></div>
     <form class="form" id="wineForm">
-      <div>
-        <label for="wineProducer">Producer</label>
-        <select id="wineProducer" required></select>
-      </div>
-      <div>
-        <label for="wineName">Wine</label>
-        <input id="wineName" required>
-      </div>
-      <div class="form-row">
-        <div>
-          <label for="wineVintage">Vintage</label>
-          <input id="wineVintage">
-        </div>
-        <div>
-          <label for="wineColor">Color</label>
-          <select id="wineColor">
-            <option value="red">Red</option>
-            <option value="white">White</option>
-            <option value="skin">Skin contact</option>
-            <option value="sparkling">Sparkling</option>
-            <option value="rose">Rosé</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div>
-          <label for="wineAppellation">Appellation</label>
-          <input id="wineAppellation">
-        </div>
-        <div>
-          <label for="wineFormat">Format</label>
-          <input id="wineFormat" placeholder="750ml or magnum">
-        </div>
-      </div>
+      <p class="picker-selected" id="winePickerSelected">Pick a wine from the current list.</p>
       <div class="form-row">
         <div>
           <label for="wineCases">Cases this month</label>
           <input id="wineCases" type="number" min="0" step="0.001" value="1">
         </div>
         <div>
-          <label for="wineWholesale">Wholesale / retail</label>
-          <input id="wineWholesale" placeholder="294">
+          <label for="wineRetail">Retail</label>
+          <input id="wineRetail" type="number" min="0" step="1" placeholder="318">
         </div>
-      </div>
-      <div>
-        <label for="wineRetail">Retail</label>
-        <input id="wineRetail" type="number" min="0" step="1" placeholder="318">
       </div>
       <div class="dialog-actions">
         <button class="btn" type="button" id="wineCancel">Cancel</button>
-        <button class="btn btn-solid" type="submit">Save wine</button>
+        <button class="btn btn-solid" type="submit" id="wineSave" disabled>Add to this month</button>
       </div>
     </form>
   </dialog>

@@ -1,4 +1,12 @@
-import { prettyName, loadCatalog } from '../../scripts/catalog.js';
+import {
+  prettyName,
+  loadCatalog,
+  CAT_LABEL,
+  wineCategory,
+  formatPrice,
+  wineHaystack,
+  highlight,
+} from '../../scripts/catalog.js';
 
 const DEFAULT_PAGE_SIZE = 12;
 
@@ -11,69 +19,10 @@ const SWATCH = {
   other: 'linear-gradient(160deg, #e8d7c0, #c9a07a 50%, #6d7b63)',
 };
 
-const CAT_LABEL = {
-  skin: 'Skin contact',
-  red: 'Red',
-  white: 'White',
-  sparkling: 'Sparkling',
-  rose: 'Rosé',
-  other: 'Wine',
-};
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function wineCategory(row) {
-  const t = `${row.Wine || ''} ${row['Region/Sub Region'] || ''}`.toLowerCase();
-  if (/pet-?nat|pétillant|sparkling|champagne|crémant|cap classique|mousseux|col fondo|sekt|frizzante/.test(t)) return 'sparkling';
-  if (/rosé|rosato|rosado|\brose\b|\brosa\b/.test(t)) return 'rose';
-  if (/orange|macerat|skin contact|amber|orangée|orangee/.test(t)) return 'skin';
-  if (/\bwhite\b|\bblanc\b|bianco|weiss|weiß|blanco|chardonnay|riesling|gr[uü]ner|gew[uü]rz|chenin|aligot|sauvignon|pinot gris|friulano/.test(t)) return 'white';
-  if (/\bred\b|\brouge\b|rosso|tinto|noir|syrah|shiraz|gamay|cabernet|merlot|blaufr|zweigelt|grenache|pinot noir/.test(t)) return 'red';
-  return 'other';
-}
-
-function formatPrice(raw) {
-  const n = Number(String(raw || '').replace(/[^0-9.]/g, ''));
-  if (!Number.isFinite(n) || n < 2) return '';
-  return `$${Math.round(n)}`;
-}
-
 function noteText(row) {
   const t = String(row['Tasting Notes'] || '').trim();
   if (t.length > 24 && !/^\d{4}$/.test(t) && t.toLowerCase() !== 'tasting notes') return t;
   return '';
-}
-
-function highlight(text, query) {
-  const safe = escapeHtml(text ?? '');
-  const toks = [...new Set(String(query || '').trim().split(/\s+/).filter(Boolean))];
-  if (!toks.length) return safe;
-  const pattern = toks
-    .sort((a, b) => b.length - a.length)
-    .map((tok) => tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('|');
-  return safe.replace(new RegExp(`(${pattern})`, 'gi'), '<mark>$1</mark>');
-}
-
-function wineHaystack(row, cat, note, price) {
-  return [
-    row.Wine,
-    row.Producer,
-    prettyName(row.Producer),
-    row['Region/Sub Region'],
-    row.Vintage,
-    row.Size,
-    row['Item Code'],
-    note,
-    price,
-    CAT_LABEL[cat],
-  ].filter(Boolean).join(' ').toLowerCase();
 }
 
 function originalSpan(text) {

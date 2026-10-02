@@ -502,6 +502,13 @@ dialog {
   background: var(--foam);
   box-shadow: var(--shadow);
 }
+#wineDialog {
+  width: min(720px, 94vw);
+  max-height: min(92vh, 840px);
+  display: none;
+  flex-direction: column;
+}
+#wineDialog[open] { display: flex; }
 dialog::backdrop { background: rgba(22, 18, 16, 0.45); }
 dialog h2 { margin: 0 0 0.8rem; font-size: 1.5rem; font-weight: 400; }
 .form { display: grid; gap: 0.7rem; }
@@ -515,6 +522,141 @@ label { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; c
 }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.4rem; }
+
+.picker-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+}
+.picker-chip {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  background: transparent;
+  color: var(--ink-soft);
+}
+.picker-chip:hover { border-color: var(--ink); color: var(--ink); }
+.picker-chip[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--foam);
+  border-color: var(--ink);
+}
+.picker-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.22rem 0.85rem;
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--foam) 70%, transparent);
+}
+.picker-search:focus-within { border-color: var(--ink); color: var(--ink); }
+.picker-search-icon {
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: none;
+  background: currentColor;
+  opacity: 0.65;
+  -webkit-mask: url("../icons/search.svg") center / contain no-repeat;
+  mask: url("../icons/search.svg") center / contain no-repeat;
+}
+.picker-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0.28rem 0;
+  font: inherit;
+  color: var(--ink);
+  outline: none;
+}
+.picker-empty, .picker-status, .picker-selected {
+  margin: 0 0 0.6rem;
+  color: var(--muted);
+}
+.picker-empty[hidden] { display: none; }
+.picker-list {
+  display: grid;
+  gap: 0.4rem;
+  overflow: auto;
+  max-height: min(46vh, 380px);
+  margin: 0 0 0.9rem;
+  padding-right: 0.15rem;
+}
+.picker-wine {
+  display: grid;
+  grid-template-columns: 0.7rem 1fr auto;
+  gap: 0.75rem;
+  align-items: start;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 0.7rem 0.85rem;
+  background: color-mix(in srgb, var(--foam) 80%, transparent);
+}
+.picker-wine[hidden] { display: none; }
+.picker-wine:hover { border-color: var(--ink); }
+.picker-wine[aria-selected="true"] {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, var(--foam));
+}
+.picker-swatch {
+  width: 0.7rem;
+  height: 100%;
+  min-height: 2.4rem;
+  border-radius: 999px;
+  background: var(--clay);
+}
+.picker-swatch.cat-red { background: #7a2436; }
+.picker-swatch.cat-white { background: #d9c27a; }
+.picker-swatch.cat-skin { background: #c45e2b; }
+.picker-swatch.cat-sparkling { background: #e8d7a8; }
+.picker-swatch.cat-rose { background: #d9899a; }
+.picker-copy { min-width: 0; }
+.picker-name {
+  display: block;
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 400;
+}
+.picker-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.7rem;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.picker-side {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+  font-family: var(--serif);
+}
+.picker-badge {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--moss);
+}
+.picker-wine mark {
+  background: color-mix(in srgb, var(--clay) 62%, #f6e3b5);
+  color: inherit;
+  padding: 0 0.12em;
+  border-radius: 0.15em;
+}
 
 .loading, .empty {
   padding: 2.5rem 1rem;
