@@ -239,7 +239,6 @@ a:hover {
   font-family: var(--body-font-family);
   color: var(--wine);
   line-height: 1;
-  scroll-margin: calc(var(--nav-height) - 8px);
 }
 
 .kicker strong {
@@ -414,6 +413,7 @@ main > .section {
   z-index: 1;
   margin: 0;
   padding: 5.5rem 0;
+  scroll-margin: calc(var(--nav-height) - 8px);
 }
 
 main > .section > div {

@@ -171,8 +171,9 @@ function decorateKickers(main) {
       strong.replaceWith(...strong.childNodes);
     }
 
-    const id = toClassName(p.textContent) || heading.id;
-    if (id && !document.getElementById(id)) p.id = id;
+    const section = p.closest('.section');
+    const id = toClassName(p.textContent);
+    if (section && id && !section.id && !document.getElementById(id)) section.id = id;
   });
 }
 
