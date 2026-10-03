@@ -55,10 +55,18 @@ function setMonthControls(open) {
   document.getElementById('nextMonth').hidden = !open;
 }
 
+function allocatedCases(data, customerId) {
+  return customerAllocations(data, customerId).reduce((sum, row) => sum + (row.alloc.cases || 0), 0);
+}
+
 function renderPicker(data) {
-  setMonthControls(false);
-  statsEl.innerHTML = '';
-  monthLabel.textContent = 'Allocations';
+  setMonthControls(true);
+  monthLabel.textContent = formatMonthLabel(state.month);
+  const totals = data.customers.map((customer) => allocatedCases(data, customer.id));
+  const monthTotal = totals.reduce((sum, value) => sum + value, 0);
+  statsEl.innerHTML = `
+    <div class="stat"><b>${compactQty(monthTotal)}</b><span>Allocated</span></div>
+  `;
   if (!data.customers.length) {
     boardEl.innerHTML = '<div class="empty">No customers yet. Add them on the customers page.</div>';
     return;
@@ -66,11 +74,14 @@ function renderPicker(data) {
   boardEl.innerHTML = `
     <p class="muted pick-lead">Choose an account</p>
     <ul class="pick-list">
-      ${data.customers.map((customer) => `
+      ${data.customers.map((customer, index) => `
         <li>
-          <a class="pick-link" href="${escapeHtml(customerHref(customer.id))}">
-            <span class="account-name">${escapeHtml(customer.name)}</span>
-            <span class="muted">${escapeHtml(customerEmails(customer).join(', ') || '')}</span>
+          <a class="pick-link ${totals[index] ? '' : 'is-empty'}" href="${escapeHtml(customerHref(customer.id))}">
+            <span>
+              <span class="account-name">${escapeHtml(customer.name)}</span>
+              <span class="muted">${escapeHtml(customerEmails(customer).join(', ') || '')}</span>
+            </span>
+            ${compactQty(totals[index])}
           </a>
         </li>
       `).join('')}
@@ -93,7 +104,7 @@ function renderCustomer(data, customerId) {
     return;
   }
   const rows = customerAllocations(data, customer.id);
-  const total = rows.reduce((sum, row) => sum + (row.alloc.cases || 0), 0);
+  const total = allocatedCases(data, customer.id);
   statsEl.innerHTML = `
     <div class="stat"><b>${compactQty(total)}</b><span>Allocated</span></div>
   `;

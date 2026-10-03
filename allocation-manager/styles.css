@@ -611,7 +611,15 @@ body.role-account .wine-nav { display: none; }
   border-radius: 1rem;
   text-decoration: none;
 }
-.pick-link { grid-template-columns: 1fr; }
+.pick-link { grid-template-columns: minmax(0, 1fr) auto; }
+.pick-link .qty-line {
+  justify-self: end;
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 300;
+  white-space: nowrap;
+}
+.pick-link.is-empty .qty-line { opacity: 0.4; }
 .pick-link:hover,
 .customer-card:hover { border-color: var(--ink); }
 .customer-edit {
