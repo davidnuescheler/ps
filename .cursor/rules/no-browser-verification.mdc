@@ -1,0 +1,12 @@
+---
+description: Do not use the browser to verify UI; the user checks it.
+alwaysApply: true
+---
+
+# No browser verification
+
+Never open, lock, click, or screenshot the browser to verify work. The user checks the UI.
+
+Do not use `cursor-ide-browser` (or any other browser automation) unless the user explicitly asks to drive the browser.
+
+Finish in code. Say what to look at if a check is useful.

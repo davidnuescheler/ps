@@ -1,7 +1,7 @@
 export const LOGGER_ORIGIN = 'https://sheet-logger.david8603.workers.dev';
 export const API_BASE = `${LOGGER_ORIGIN}/publicsediments/allocation-manager`;
 
-const USER_KEY = 'psAlloc_user';
+const EMAIL_KEY = 'psAlloc_email';
 
 export function generateId() {
   const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -36,13 +36,44 @@ export function shiftMonth(key, delta) {
   return monthKey(date);
 }
 
-export function getUser() {
-  let user = localStorage.getItem(USER_KEY);
-  if (!user) {
-    user = 'studio';
-    localStorage.setItem(USER_KEY, user);
+export function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+export function parseEmails(raw) {
+  if (Array.isArray(raw)) return [...new Set(raw.flatMap(parseEmails))];
+  const text = String(raw || '').trim();
+  if (!text) return [];
+  if (text.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parseEmails(parsed);
+    } catch {
+      // fall through and split the raw string
+    }
   }
-  return user;
+  return [...new Set(
+    text.split(/[\s,;]+/).map(normalizeEmail).filter((email) => email.includes('@')),
+  )];
+}
+
+export function isStaffEmail(email) {
+  return normalizeEmail(email).endsWith('@publicsediments.com');
+}
+
+export function getEmail() {
+  return normalizeEmail(localStorage.getItem(EMAIL_KEY));
+}
+
+export function setEmail(email) {
+  const value = normalizeEmail(email);
+  if (value) localStorage.setItem(EMAIL_KEY, value);
+  else localStorage.removeItem(EMAIL_KEY);
+  return value;
+}
+
+export function getUser() {
+  return getEmail() || 'anonymous';
 }
 
 export function catalogUrl() {

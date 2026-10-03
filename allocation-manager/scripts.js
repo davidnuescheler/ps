@@ -1,16 +1,34 @@
-import {
-  catalogUrl,
-  generateId,
-  loadEvents,
-  monthKey,
-  monthUrl,
-  parseMonthKey,
+const {
+  applyChrome,
+  applyMonthFromUrl,
+  assetQuery,
+  bindMonthNav,
+  boot,
+  bottlesOf,
+  canEdit,
+  casesFromBottles,
+  compactQty,
+  escapeHtml,
   formatMonthLabel,
-  postEvents,
+  generateId,
+  loadMonth,
+  loadSession,
+  model,
+  packFrom,
+  qtyPhrase,
+  renderFigure,
+  routeAfterAccess,
+  save,
+  saveMany,
+  setRender,
   shiftMonth,
-} from './logger.js';
-import { catalogSeedEvents, monthSeedEvents } from './seed.js';
-import {
+  state,
+  winesOnMonth,
+  wineLabel,
+} = await import(`./shared.js${new URL(import.meta.url).search}`);
+
+const catalogMod = await import(`../scripts/catalog.js${assetQuery}`);
+const {
   CAT_LABEL,
   formatPrice,
   highlight,
@@ -19,42 +37,20 @@ import {
   prettyName,
   wineCategory,
   wineHaystack,
-} from '../scripts/catalog.js';
-
-const state = {
-  month: monthKey(),
-  catalog: [],
-  monthLog: [],
-  producerId: null,
-  wineId: null,
-  showEmpty: false,
-  source: 'server',
-  list: [],
-  pickerKey: '',
-  selectedAccounts: new Set(),
-};
+} = catalogMod;
 
 const timers = new Map();
 
-const syncEl = document.getElementById('sync');
 const boardEl = document.getElementById('board');
 const producerNav = document.getElementById('producerNav');
 const wineNav = document.getElementById('wineNav');
 const monthLabel = document.getElementById('monthLabel');
 const statsEl = document.getElementById('stats');
-const producerList = document.getElementById('producerList');
-const customerList = document.getElementById('customerList');
 const showEmptyBtn = document.getElementById('showEmptyBtn');
 const wineDialog = document.getElementById('wineDialog');
-const customerDialog = document.getElementById('customerDialog');
-const producerDialog = document.getElementById('producerDialog');
 const allocDock = document.getElementById('allocDock');
 const allocSpread = document.getElementById('allocSpread');
 const allocMinus = document.getElementById('allocMinus');
-
-function isMonthKey(key) {
-  return /^\d{4}-(0[1-9]|1[0-2])$/.test(key) && monthKey(parseMonthKey(key)) === key;
-}
 
 function viewFromSearch(search = window.location.search) {
   const params = new URLSearchParams(search);
@@ -66,8 +62,8 @@ function viewFromSearch(search = window.location.search) {
 }
 
 function applyViewFromUrl() {
+  applyMonthFromUrl();
   const view = viewFromSearch();
-  if (isMonthKey(view.month)) state.month = view.month;
   state.producerId = view.producerId || null;
   state.wineId = view.wineId || null;
 }
@@ -97,234 +93,6 @@ function syncLocation(mode = 'replace') {
   else history.replaceState(data, '', url);
 }
 
-function setSync(status) {
-  syncEl.className = `sync ${status}`;
-  const titles = {
-    syncing: 'Syncing to sheet-logger…',
-    synced: 'Synced',
-    local: 'Saved locally — sheet-logger unreachable',
-    error: 'Sync error',
-  };
-  syncEl.title = titles[status] || status;
-}
-
-const BOTTLES_PER_CASE = 12;
-
-function splitCases(value) {
-  const bottles = Math.round((Number(value) || 0) * BOTTLES_PER_CASE);
-  const negative = bottles < 0;
-  const abs = Math.abs(bottles);
-  return {
-    bottles,
-    cases: Math.floor(abs / BOTTLES_PER_CASE) * (negative ? -1 : 1),
-    leftover: (abs % BOTTLES_PER_CASE) * (negative ? -1 : 1),
-  };
-}
-
-function casesFromBottles(bottles) {
-  return (Number(bottles) || 0) / BOTTLES_PER_CASE;
-}
-
-function bottlesOf(value) {
-  return Math.round((Number(value) || 0) * BOTTLES_PER_CASE);
-}
-
-function casesFromParts(cases, bottles) {
-  return (Number(cases) || 0) + (Number(bottles) || 0) / BOTTLES_PER_CASE;
-}
-
-function qtyPhrase(value) {
-  const { cases, leftover } = splitCases(value);
-  const c = Math.abs(cases);
-  const b = Math.abs(leftover);
-  const bits = [];
-  if (c) bits.push(`${c} ${c === 1 ? 'case' : 'cases'}`);
-  if (b) bits.push(`${b} ${b === 1 ? 'bottle' : 'bottles'}`);
-  if (!bits.length) return '0 bottles';
-  if (bits.length === 2) return `${bits[0]} and ${bits[1]}`;
-  return bits[0];
-}
-
-function renderUnit(kind, value, { editable = false, muted = false } = {}) {
-  const isCase = kind === 'case';
-  const word = isCase
-    ? (Math.abs(value) === 1 ? 'case' : 'cases')
-    : (Math.abs(value) === 1 ? 'bottle' : 'bottles');
-  const icon = isCase ? 'icon-case' : 'icon-bottle';
-  const text = String(Math.max(0, value) || 0);
-  const num = editable
-    ? `<span class="figure-value">
-        <span class="figure-sizer" aria-hidden="true">${text}</span>
-        <input class="figure-input" data-part="${isCase ? 'cases' : 'bottles'}" type="text" inputmode="numeric" pattern="[0-9]*" size="1" maxlength="3" value="${text}">
-      </span>`
-    : `<b class="figure-num">${text}</b>`;
-  return `
-    <div class="unit ${muted && !value ? 'is-zero' : ''}">
-      <span class="${icon}" aria-hidden="true"></span>
-      <div class="unit-copy">
-        ${num}
-        <span class="unit-word">${word}</span>
-      </div>
-    </div>
-  `;
-}
-
-function renderFigure(value, { editable = false, pack = '', over = false } = {}) {
-  const parts = splitCases(value);
-  const cases = Math.abs(parts.cases);
-  const leftover = Math.abs(parts.leftover);
-  const showCases = cases > 0 || (editable && leftover === 0);
-  const showBottles = leftover > 0 || (editable && cases === 0);
-  return `
-    <div class="figure-pack ${over ? 'is-over' : ''}" ${pack ? `data-pack="${pack}"` : ''}>
-      ${showCases ? renderUnit('case', cases, { editable }) : ''}
-      ${showBottles ? renderUnit('bottle', leftover, { editable, muted: true }) : ''}
-    </div>
-  `;
-}
-
-function compactQty(value) {
-  const { cases, leftover } = splitCases(value);
-  const c = Math.abs(cases);
-  const b = Math.abs(leftover);
-  if (!c && !b) {
-    return `
-      <span class="qty-line">
-        <span class="icon-case" aria-hidden="true"></span>0
-      </span>
-    `;
-  }
-  return `
-    <span class="qty-line">
-      ${c ? `<span class="icon-case" aria-hidden="true"></span>${c}` : ''}
-      ${b ? `<span class="icon-bottle" aria-hidden="true"></span>${b}` : ''}
-    </span>
-  `;
-}
-
-function packFrom(el) {
-  const cases = el.querySelector('[data-part="cases"]')?.value;
-  const bottles = el.querySelector('[data-part="bottles"]')?.value;
-  return casesFromParts(cases, bottles);
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function replayCatalog(changelog) {
-  const producers = new Map();
-  const customers = new Map();
-  const wines = new Map();
-  const producerOrder = [];
-  const customerOrder = [];
-  const wineOrder = [];
-
-  [...changelog].sort((a, b) => String(a.ts || '').localeCompare(String(b.ts || ''))).forEach((event) => {
-    if (event.op === 'producer_added' && event.id) {
-      producers.set(event.id, {
-        id: event.id,
-        name: event.name || '',
-        color: event.color || '#7a2436',
-        region: event.region || '',
-      });
-      if (!producerOrder.includes(event.id)) producerOrder.push(event.id);
-    } else if (event.op === 'producer_updated' && producers.has(event.id)) {
-      Object.assign(producers.get(event.id), {
-        name: event.name ?? producers.get(event.id).name,
-        color: event.color ?? producers.get(event.id).color,
-        region: event.region ?? producers.get(event.id).region,
-      });
-    } else if (event.op === 'producer_removed') {
-      producers.delete(event.id);
-    } else if (event.op === 'customer_added' && event.id) {
-      customers.set(event.id, {
-        id: event.id,
-        name: event.name || '',
-        kind: event.kind || 'account',
-      });
-      if (!customerOrder.includes(event.id)) customerOrder.push(event.id);
-    } else if (event.op === 'customer_updated' && customers.has(event.id)) {
-      Object.assign(customers.get(event.id), {
-        name: event.name ?? customers.get(event.id).name,
-      });
-    } else if (event.op === 'customer_removed') {
-      customers.delete(event.id);
-    } else if (event.op === 'wine_added' && event.id) {
-      wines.set(event.id, {
-        id: event.id,
-        producerId: event.producerId,
-        name: event.name || '',
-        vintage: event.vintage || '',
-        appellation: event.appellation || '',
-        color: event.color || 'red',
-        format: event.format || '',
-        itemCode: event.itemCode || '',
-      });
-      if (!wineOrder.includes(event.id)) wineOrder.push(event.id);
-    } else if (event.op === 'wine_updated' && wines.has(event.id)) {
-      const wine = wines.get(event.id);
-      Object.assign(wine, {
-        name: event.name ?? wine.name,
-        vintage: event.vintage ?? wine.vintage,
-        appellation: event.appellation ?? wine.appellation,
-        color: event.color ?? wine.color,
-        format: event.format ?? wine.format,
-        producerId: event.producerId ?? wine.producerId,
-        itemCode: event.itemCode ?? wine.itemCode,
-      });
-    } else if (event.op === 'wine_removed') {
-      wines.delete(event.id);
-    }
-  });
-
-  return {
-    producers: producerOrder.map((id) => producers.get(id)).filter(Boolean),
-    customers: customerOrder.map((id) => customers.get(id)).filter(Boolean),
-    wines: wineOrder.map((id) => wines.get(id)).filter(Boolean),
-  };
-}
-
-function replayMonth(changelog) {
-  const allotments = new Map();
-  const allocations = new Map();
-
-  [...changelog].sort((a, b) => String(a.ts || '').localeCompare(String(b.ts || ''))).forEach((event) => {
-    if (event.op === 'allotment_set' && event.wineId) {
-      allotments.set(event.wineId, {
-        wineId: event.wineId,
-        cases: Number(event.cases) || 0,
-        wholesale: Number(event.wholesale) || 0,
-        retail: Number(event.retail) || 0,
-      });
-    } else if (event.op === 'allocation_set' && event.wineId && event.customerId) {
-      const key = `${event.wineId}:${event.customerId}`;
-      const cases = Number(event.cases) || 0;
-      if (!cases) allocations.delete(key);
-      else {
-        allocations.set(key, {
-          wineId: event.wineId,
-          customerId: event.customerId,
-          cases,
-          status: event.status || '',
-        });
-      }
-    }
-  });
-
-  return { allotments, allocations };
-}
-
-function model() {
-  const catalog = replayCatalog(state.catalog);
-  const month = replayMonth(state.monthLog);
-  return { ...catalog, ...month };
-}
-
 function totalsFor(wines, allotments, allocations) {
   let received = 0;
   let allocated = 0;
@@ -351,26 +119,6 @@ function debounce(key, fn, wait = 400) {
   timers.set(key, setTimeout(fn, wait));
 }
 
-async function save(kind, event) {
-  return saveMany(kind, [event]);
-}
-
-async function saveMany(kind, events) {
-  if (!events.length) return;
-  const url = kind === 'catalog' ? catalogUrl() : monthUrl(state.month);
-  setSync('syncing');
-  const stamped = events.map((event) => ({ ...event, ts: new Date().toISOString() }));
-  if (kind === 'catalog') state.catalog.push(...stamped);
-  else state.monthLog.push(...stamped);
-  render();
-  try {
-    await postEvents(url, events);
-    setSync(state.source === 'local' ? 'local' : 'synced');
-  } catch {
-    setSync('error');
-  }
-}
-
 function renderStats(data) {
   const { received, allocated, remaining } = totalsFor(winesOnMonth(data), data.allotments, data.allocations);
   statsEl.innerHTML = `
@@ -380,10 +128,6 @@ function renderStats(data) {
   `;
 }
 
-function winesOnMonth(data) {
-  return data.wines.filter((wine) => data.allotments.has(wine.id));
-}
-
 function producersOnMonth(data) {
   const ids = new Set(winesOnMonth(data).map((wine) => wine.producerId));
   return data.producers.filter((producer) => ids.has(producer.id));
@@ -391,10 +135,6 @@ function producersOnMonth(data) {
 
 function winesForProducer(data, producerId) {
   return winesOnMonth(data).filter((wine) => wine.producerId === producerId);
-}
-
-function wineLabel(wine) {
-  return [wine.vintage, wine.name].filter(Boolean).join(' ');
 }
 
 function syncSelection(data) {
@@ -437,19 +177,6 @@ function renderWineNav(wines, producer) {
   `).join('');
 }
 
-function renderLists(data) {
-  producerList.innerHTML = data.producers.map((producer) => `
-    <div class="list-item">
-      <span><b>${escapeHtml(producer.name)}</b> <span class="muted">${escapeHtml(producer.region || '')}</span></span>
-    </div>
-  `).join('');
-  customerList.innerHTML = data.customers.map((customer) => `
-    <div class="list-item">
-      <span>${escapeHtml(customer.name)}</span>
-    </div>
-  `).join('');
-}
-
 function renderBoard(data, producer, wine) {
   if (!winesOnMonth(data).length) {
     showEmptyBtn.hidden = true;
@@ -475,8 +202,8 @@ function renderBoard(data, producer, wine) {
     if (!visibleIds.has(id)) state.selectedAccounts.delete(id);
   });
   const remaining = (allot.cases || 0) - allocated;
-  const receivedBottles = Math.round((allot.cases || 0) * BOTTLES_PER_CASE);
-  const allocatedBottles = Math.round(allocated * BOTTLES_PER_CASE);
+  const receivedBottles = Math.round((allot.cases || 0) * 12);
+  const allocatedBottles = Math.round(allocated * 12);
   const pct = receivedBottles > 0
     ? Math.min(100, Math.round((allocatedBottles / receivedBottles) * 100))
     : (allocatedBottles > 0 ? 100 : 0);
@@ -493,7 +220,7 @@ function renderBoard(data, producer, wine) {
     return `
       <li class="account ${customer.kind === 'transfer' ? 'transfer' : ''} ${selected ? 'is-selected' : ''}" data-customer="${escapeHtml(customer.id)}" aria-selected="${selected}">
         <span class="account-name">${escapeHtml(customer.name)}</span>
-        ${renderFigure(row?.cases || 0, { editable: true, pack: `alloc:${wine.id}:${customer.id}` })}
+        ${renderFigure(row?.cases || 0, { editable: canEdit(), pack: `alloc:${wine.id}:${customer.id}` })}
         <button class="status ${status}" data-status="${wine.id}:${customer.id}" type="button">${status || 'set status'}</button>
       </li>
     `;
@@ -504,7 +231,7 @@ function renderBoard(data, producer, wine) {
       <div class="overview-grid">
         <section class="figure">
           <p class="figure-label">Received</p>
-          ${renderFigure(allot.cases, { editable: true, pack: `allot:${wine.id}` })}
+          ${renderFigure(allot.cases, { editable: canEdit(), pack: `allot:${wine.id}` })}
         </section>
         <section class="figure">
           <p class="figure-label">Allocated</p>
@@ -520,7 +247,7 @@ function renderBoard(data, producer, wine) {
       </div>
     </article>
     <ul class="accounts">
-      ${accounts || '<li class="accounts-empty">No accounts yet. Add a customer to start placing bottles.</li>'}
+      ${accounts || '<li class="accounts-empty">No accounts yet. Add a customer on the customers page to start placing bottles.</li>'}
     </ul>
   `;
 }
@@ -530,7 +257,7 @@ function remainingBottlesFor(wineId) {
   const data = model();
   const allot = data.allotments.get(wineId)?.cases || 0;
   const allocated = allocatedForWine(wineId, data.allocations);
-  return Math.round((allot - allocated) * BOTTLES_PER_CASE);
+  return Math.round((allot - allocated) * 12);
 }
 
 function selectedCustomerIds() {
@@ -540,7 +267,7 @@ function selectedCustomerIds() {
 
 function syncDock() {
   const ids = selectedCustomerIds();
-  const open = Boolean(state.wineId && ids.length);
+  const open = canEdit() && Boolean(state.wineId && ids.length);
   allocDock.hidden = !open;
   document.body.classList.toggle('has-dock', open);
   if (!open) return;
@@ -552,19 +279,26 @@ function syncDock() {
 }
 
 function render(historyMode = 'replace') {
+  applyChrome();
+  if (state.access !== 'staff') {
+    producerNav.innerHTML = '';
+    wineNav.innerHTML = '';
+    syncDock();
+    return;
+  }
   const data = model();
-  const { producer, wines, wine } = syncSelection(data);
   monthLabel.textContent = formatMonthLabel(state.month);
+  const { producer, wines, wine } = syncSelection(data);
   renderStats(data);
   renderProducerNav(data);
   renderWineNav(wines, producer);
   renderBoard(data, producer, wine);
-  renderLists(data);
   syncDock();
   syncLocation(historyMode);
 }
 
 async function persistAllotment(wineId, patch) {
+  if (!canEdit()) return;
   const data = model();
   const current = data.allotments.get(wineId) || { cases: 0, wholesale: 0, retail: 0 };
   await save('month', {
@@ -576,12 +310,8 @@ async function persistAllotment(wineId, patch) {
   });
 }
 
-async function persistAllocation(wineId, customerId, patch) {
-  await persistAllocations(wineId, [{ customerId, ...patch }]);
-}
-
 async function persistAllocations(wineId, patches) {
-  if (!patches.length) return;
+  if (!canEdit() || !patches.length) return;
   const data = model();
   const events = patches.map((patch) => {
     const current = data.allocations.get(`${wineId}:${patch.customerId}`) || { cases: 0, status: '' };
@@ -594,6 +324,10 @@ async function persistAllocations(wineId, patches) {
     };
   });
   await saveMany('month', events);
+}
+
+async function persistAllocation(wineId, customerId, patch) {
+  await persistAllocations(wineId, [{ customerId, ...patch }]);
 }
 
 function selectedAllocationPatches(deltaBottles) {
@@ -609,12 +343,14 @@ function selectedAllocationPatches(deltaBottles) {
 }
 
 async function nudgeSelected(deltaBottles) {
+  if (!canEdit()) return;
   const patches = selectedAllocationPatches(deltaBottles);
   if (!patches.length) return;
   await persistAllocations(state.wineId, patches);
 }
 
 async function spreadSelected() {
+  if (!canEdit()) return;
   const wineId = state.wineId;
   const ids = selectedCustomerIds();
   if (!wineId || !ids.length) return;
@@ -639,6 +375,7 @@ function nextStatus(current) {
 }
 
 function onBoardInput(event) {
+  if (!canEdit()) return;
   const { target } = event;
   if (target.classList.contains('figure-input')) {
     const cleaned = target.value.replace(/\D/g, '');
@@ -666,6 +403,7 @@ function onBoardInput(event) {
 }
 
 function onBoardClick(event) {
+  if (!canEdit()) return;
   const statusBtn = event.target.closest('[data-status]');
   if (statusBtn) {
     const [wineId, customerId] = statusBtn.dataset.status.split(':');
@@ -683,92 +421,6 @@ function onBoardClick(event) {
   account.classList.toggle('is-selected', state.selectedAccounts.has(id));
   account.setAttribute('aria-selected', String(state.selectedAccounts.has(id)));
   syncDock();
-}
-
-async function loadMonth() {
-  setSync('syncing');
-  const result = await loadEvents(monthUrl(state.month));
-  state.monthLog = result.events;
-  state.source = result.source;
-  setSync(result.source === 'server' ? 'synced' : 'local');
-}
-
-function idsOf(items) {
-  return new Set(items.map((item) => item.id));
-}
-
-function missingCatalogEvents(data) {
-  const producerIds = idsOf(data.producers);
-  const customerIds = idsOf(data.customers);
-  const wineIds = idsOf(data.wines);
-  return catalogSeedEvents().filter((event) => {
-    if (event.op === 'producer_added') return !producerIds.has(event.id);
-    if (event.op === 'customer_added') return !customerIds.has(event.id);
-    if (event.op === 'wine_added') return !wineIds.has(event.id);
-    return false;
-  });
-}
-
-function missingMonthEvents(data) {
-  const existingAllot = new Set(data.allotments.keys());
-  const existingAlloc = new Set(data.allocations.keys());
-  return monthSeedEvents().filter((event) => {
-    if (event.op === 'allotment_set') return !existingAllot.has(event.wineId);
-    if (event.op === 'allocation_set') {
-      return !existingAlloc.has(`${event.wineId}:${event.customerId}`);
-    }
-    return false;
-  });
-}
-
-async function loadAll() {
-  setSync('syncing');
-  boardEl.innerHTML = '<div class="loading">Loading allocations…</div>';
-  try {
-    const [catalog, list] = await Promise.all([
-      loadEvents(catalogUrl()),
-      loadCatalog(),
-    ]);
-    state.catalog = catalog.events;
-    state.list = list;
-    state.source = catalog.source;
-
-    let data = model();
-    const catalogMissing = missingCatalogEvents(data);
-    if (catalogMissing.length) {
-      await postEvents(catalogUrl(), catalogMissing);
-      const seeded = await loadEvents(catalogUrl());
-      if (seeded.events.length >= state.catalog.length) state.catalog = seeded.events;
-      else {
-        catalogMissing.forEach((event) => {
-          state.catalog.push({ ...event, ts: new Date().toISOString() });
-        });
-      }
-    }
-
-    await loadMonth();
-    data = model();
-    const monthMissing = missingMonthEvents(data);
-    const exampleMonthKey = 'psAlloc_exampleMonth';
-    const exampleMonth = localStorage.getItem(exampleMonthKey);
-    if (monthMissing.length && data.wines.length && (!exampleMonth || exampleMonth === state.month)) {
-      localStorage.setItem(exampleMonthKey, state.month);
-      await postEvents(monthUrl(state.month), monthMissing);
-      const monthSeeded = await loadEvents(monthUrl(state.month));
-      if (monthSeeded.events.length >= state.monthLog.length) state.monthLog = monthSeeded.events;
-      else {
-        monthMissing.forEach((event) => {
-          state.monthLog.push({ ...event, ts: new Date().toISOString() });
-        });
-      }
-    }
-
-    setSync(state.source === 'server' ? 'synced' : 'local');
-    render();
-  } catch {
-    setSync('error');
-    boardEl.innerHTML = '<div class="empty">Could not load allocations. Retry with the refresh button — local changes are kept.</div>';
-  }
 }
 
 function foldName(value) {
@@ -890,14 +542,14 @@ function fillAllotmentFields(row) {
 }
 
 function selectPickerRow(row) {
-  const { list, selected, save } = pickerEls();
+  const { list, selected, save: saveBtn } = pickerEls();
   state.pickerKey = row ? rowKey(row) : '';
   list.querySelectorAll('.picker-wine').forEach((el) => {
     el.setAttribute('aria-selected', String(el.dataset.key === state.pickerKey));
   });
   if (!row) {
     selected.textContent = 'Pick a wine from the current list.';
-    save.disabled = true;
+    saveBtn.disabled = true;
     fillAllotmentFields(null);
     return;
   }
@@ -905,7 +557,7 @@ function selectPickerRow(row) {
   const wine = prettyName(row.Wine);
   const vintage = String(row.Vintage || '').trim();
   selected.textContent = [vintage, wine, '·', producer].filter(Boolean).join(' ');
-  save.disabled = false;
+  saveBtn.disabled = false;
   fillAllotmentFields(row);
 }
 
@@ -964,13 +616,14 @@ function renderPickerList() {
 }
 
 async function openWineDialog() {
+  if (!canEdit()) return;
   state.pickerKey = '';
-  const { filters, search, save, list } = pickerEls();
+  const { filters, search, save: saveBtn, list } = pickerEls();
   filters.querySelectorAll('.picker-chip').forEach((chip) => {
     chip.setAttribute('aria-pressed', String(chip.dataset.filter === 'all'));
   });
   search.value = '';
-  save.disabled = true;
+  saveBtn.disabled = true;
   list.innerHTML = '<p class="picker-status">Loading the current list…</p>';
   selectPickerRow(null);
   wineDialog.showModal();
@@ -1012,20 +665,23 @@ async function addCatalogWine(row, allotment) {
   await persistAllotment(wineId, allotment);
 }
 
+async function reload() {
+  try {
+    await loadSession({ seedMonth: true, loadWineList: true });
+    if (!routeAfterAccess()) return;
+    render();
+  } catch {
+    boardEl.innerHTML = '<div class="empty">Could not load allocations. Retry with the refresh button — local changes are kept.</div>';
+  }
+}
+
 function bind() {
-  document.getElementById('prevMonth').addEventListener('click', async () => {
-    state.month = shiftMonth(state.month, -1);
+  bindMonthNav(async (delta) => {
+    state.month = shiftMonth(state.month, delta);
     state.selectedAccounts.clear();
     await loadMonth();
     render('push');
   });
-  document.getElementById('nextMonth').addEventListener('click', async () => {
-    state.month = shiftMonth(state.month, 1);
-    state.selectedAccounts.clear();
-    await loadMonth();
-    render('push');
-  });
-  document.getElementById('refreshBtn').addEventListener('click', loadAll);
   producerNav.addEventListener('click', (event) => {
     const chip = event.target.closest('[data-id]');
     if (!chip) return;
@@ -1073,6 +729,7 @@ function bind() {
   });
   document.getElementById('wineForm').addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!canEdit()) return;
     const row = selectedPickerRow();
     if (!row) return;
     await addCatalogWine(row, {
@@ -1083,38 +740,6 @@ function bind() {
     event.target.reset();
     selectPickerRow(null);
   });
-
-  document.getElementById('addCustomerBtn').addEventListener('click', () => customerDialog.showModal());
-  document.getElementById('customerCancel').addEventListener('click', () => customerDialog.close());
-  document.getElementById('customerForm').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    await save('catalog', {
-      op: 'customer_added',
-      id: generateId(),
-      name: document.getElementById('customerName').value.trim(),
-    });
-    state.showEmpty = true;
-    customerDialog.close();
-    event.target.reset();
-  });
-
-  document.getElementById('addProducerBtn').addEventListener('click', () => producerDialog.showModal());
-  document.getElementById('producerCancel').addEventListener('click', () => producerDialog.close());
-  document.getElementById('producerForm').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const id = generateId();
-    await save('catalog', {
-      op: 'producer_added',
-      id,
-      name: document.getElementById('producerName').value.trim(),
-      region: document.getElementById('producerRegion').value.trim(),
-      color: document.getElementById('producerColor').value,
-    });
-    state.producerId = id;
-    state.wineId = null;
-    producerDialog.close();
-    event.target.reset();
-  });
   window.addEventListener('popstate', async () => {
     const previousMonth = state.month;
     applyViewFromUrl();
@@ -1124,6 +749,7 @@ function bind() {
   });
 }
 
+setRender(render);
 bind();
 applyViewFromUrl();
-loadAll();
+boot(reload);

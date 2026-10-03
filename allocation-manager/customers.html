@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Customers — Public Sediments</title>
+  <meta name="description" content="Customer accounts for Public Sediments allocations.">
+  <link rel="canonical" href="https://main--ps--davidnuescheler.aem.live/allocation-manager/customers">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Public Sediments">
+  <meta property="og:title" content="Customers — Public Sediments">
+  <meta property="og:description" content="Customer accounts for Public Sediments allocations.">
+  <meta property="og:url" content="https://main--ps--davidnuescheler.aem.live/allocation-manager/customers">
+  <meta property="og:image" content="https://main--ps--davidnuescheler.aem.live/allocation-manager/og-image.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Public Sediments customers">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Customers — Public Sediments">
+  <meta name="twitter:description" content="Customer accounts for Public Sediments allocations.">
+  <meta name="twitter:image" content="https://main--ps--davidnuescheler.aem.live/allocation-manager/og-image.png">
+  <link rel="icon" href="/icons/mark.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script>
+    window.ALLOC_V = Date.now();
+    document.write(`<link rel="stylesheet" href="./styles.css?v=${window.ALLOC_V}">`);
+  </script>
+</head>
+<body data-page="customers">
+  <script>
+    if (!localStorage.getItem('psAlloc_email')) document.body.classList.add('role-gate');
+  </script>
+  <header class="site-header">
+    <div class="nav-bar">
+      <a class="brand" href="../index.html">
+        <span class="icon-mark" aria-hidden="true"></span>
+        <span>
+          <span class="brand-name">Public Sediments</span>
+          <span class="brand-sub">Customers</span>
+        </span>
+      </a>
+      <div class="header-tools">
+        <div class="waffle" id="waffle" hidden>
+          <button class="waffle-btn" type="button" id="waffleBtn" aria-expanded="false" aria-haspopup="true" aria-controls="waffleMenu" aria-label="Menu">
+            <span class="waffle-icon" aria-hidden="true"></span>
+          </button>
+          <div class="waffle-menu" id="waffleMenu" hidden>
+            <nav class="waffle-nav" id="pageNav" hidden>
+              <a href="./">Place</a>
+              <a href="./allocations.html">Allocations</a>
+              <a href="./customers.html" aria-current="page">Customers</a>
+            </nav>
+            <button class="session" type="button" id="sessionEmail" title="Log out">Log out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="gate" id="gate">
+    <form class="gate-card" id="gateForm">
+      <p class="gate-kicker">Public Sediments</p>
+      <h1>Sign in with email</h1>
+      <p class="muted">We’ll remember this address on this device.</p>
+      <label for="gateEmail">Email</label>
+      <input id="gateEmail" type="email" required autocomplete="username" inputmode="email">
+      <p class="gate-note" id="gateNote" hidden></p>
+      <button class="btn btn-solid" type="submit">Continue</button>
+    </form>
+  </section>
+
+  <main class="wrap" id="app">
+    <div class="toolbar">
+      <h1 class="page-title">Customers</h1>
+      <div class="row-actions">
+        <button class="btn btn-solid" id="addCustomerBtn">Add customer</button>
+      </div>
+    </div>
+    <section class="board" id="board">
+      <div class="loading">Loading customers…</div>
+    </section>
+  </main>
+
+  <dialog id="customerDialog">
+    <h2 id="customerDialogTitle">Add customer</h2>
+    <form class="form" id="customerForm">
+      <div>
+        <label for="customerName">Name</label>
+        <input id="customerName" required>
+      </div>
+      <div>
+        <label for="customerEmails">Emails</label>
+        <textarea id="customerEmails" rows="3" placeholder="one address per line"></textarea>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="customerCancel">Cancel</button>
+        <button class="btn btn-solid" type="submit">Save customer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const allocScript = document.createElement('script');
+    allocScript.type = 'module';
+    allocScript.src = `./customers.js?v=${window.ALLOC_V}`;
+    document.body.appendChild(allocScript);
+  </script>
+</body>
+</html>

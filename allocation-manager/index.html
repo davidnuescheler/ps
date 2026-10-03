@@ -25,9 +25,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css">
+  <script>
+    window.ALLOC_V = Date.now();
+    document.write(`<link rel="stylesheet" href="./styles.css?v=${window.ALLOC_V}">`);
+  </script>
 </head>
-<body>
+<body data-page="place">
+  <script>
+    if (!localStorage.getItem('psAlloc_email')) document.body.classList.add('role-gate');
+  </script>
   <header class="site-header">
     <div class="nav-bar">
       <a class="brand" href="../index.html">
@@ -38,13 +44,36 @@
         </span>
       </a>
       <div class="header-tools">
-        <span class="sync" id="sync" title="Sync status"></span>
-        <button class="ghost" id="refreshBtn" title="Reload from sheet-logger" aria-label="Reload">↻</button>
+        <div class="waffle" id="waffle" hidden>
+          <button class="waffle-btn" type="button" id="waffleBtn" aria-expanded="false" aria-haspopup="true" aria-controls="waffleMenu" aria-label="Menu">
+            <span class="waffle-icon" aria-hidden="true"></span>
+          </button>
+          <div class="waffle-menu" id="waffleMenu" hidden>
+            <nav class="waffle-nav" id="pageNav" hidden>
+              <a href="./" aria-current="page">Place</a>
+              <a href="./allocations.html">Allocations</a>
+              <a href="./customers.html">Customers</a>
+            </nav>
+            <button class="session" type="button" id="sessionEmail" title="Log out">Log out</button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
 
-  <main class="wrap">
+  <section class="gate" id="gate">
+    <form class="gate-card" id="gateForm">
+      <p class="gate-kicker">Public Sediments</p>
+      <h1>Sign in with email</h1>
+      <p class="muted">We’ll remember this address on this device.</p>
+      <label for="gateEmail">Email</label>
+      <input id="gateEmail" type="email" required autocomplete="username" inputmode="email">
+      <p class="gate-note" id="gateNote" hidden></p>
+      <button class="btn btn-solid" type="submit">Continue</button>
+    </form>
+  </section>
+
+  <main class="wrap" id="app">
     <div class="toolbar">
       <div class="month-nav">
         <button class="ghost" id="prevMonth" aria-label="Previous month">←</button>
@@ -61,9 +90,8 @@
       <div class="loading">Loading allocations…</div>
     </section>
 
-    <div class="row-actions">
+    <div class="row-actions staff-only">
       <button class="btn btn-solid" id="addWineBtn">Add wine</button>
-      <button class="btn" id="addCustomerBtn">Add customer</button>
       <button class="btn" id="showEmptyBtn" aria-pressed="false">Show empty accounts</button>
     </div>
 
@@ -73,21 +101,6 @@
       <button type="button" id="allocSpread">Spread</button>
     </div>
 
-    <div class="manage">
-      <section class="panel">
-        <h2>Producers</h2>
-        <p class="muted">Stable book. Wines and monthly allotments sit underneath.</p>
-        <div class="list" id="producerList"></div>
-        <div class="row-actions">
-          <button class="btn" id="addProducerBtn">Add producer</button>
-        </div>
-      </section>
-      <section class="panel">
-        <h2>Customers</h2>
-        <p class="muted">Restaurants and shops that receive cases this month.</p>
-        <div class="list" id="customerList"></div>
-      </section>
-    </div>
   </main>
 
   <dialog id="wineDialog">
@@ -125,44 +138,11 @@
     </form>
   </dialog>
 
-  <dialog id="customerDialog">
-    <h2>Add customer</h2>
-    <form class="form" id="customerForm">
-      <div>
-        <label for="customerName">Name</label>
-        <input id="customerName" required>
-      </div>
-      <div class="dialog-actions">
-        <button class="btn" type="button" id="customerCancel">Cancel</button>
-        <button class="btn btn-solid" type="submit">Save customer</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="producerDialog">
-    <h2>Add producer</h2>
-    <form class="form" id="producerForm">
-      <div>
-        <label for="producerName">Name</label>
-        <input id="producerName" required>
-      </div>
-      <div class="form-row">
-        <div>
-          <label for="producerRegion">Region</label>
-          <input id="producerRegion">
-        </div>
-        <div>
-          <label for="producerColor">Color</label>
-          <input id="producerColor" type="color" value="#7a2436">
-        </div>
-      </div>
-      <div class="dialog-actions">
-        <button class="btn" type="button" id="producerCancel">Cancel</button>
-        <button class="btn btn-solid" type="submit">Save producer</button>
-      </div>
-    </form>
-  </dialog>
-
-  <script type="module" src="./scripts.js"></script>
+  <script>
+    const allocScript = document.createElement('script');
+    allocScript.type = 'module';
+    allocScript.src = `./scripts.js?v=${window.ALLOC_V}`;
+    document.body.appendChild(allocScript);
+  </script>
 </body>
 </html>

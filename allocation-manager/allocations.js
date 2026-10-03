@@ -1,0 +1,163 @@
+const {
+  applyChrome,
+  applyMonthFromUrl,
+  bindMonthNav,
+  boot,
+  canEdit,
+  compactQty,
+  customerAllocations,
+  customerEmails,
+  escapeHtml,
+  formatMonthLabel,
+  loadMonth,
+  loadSession,
+  model,
+  renderFigure,
+  routeAfterAccess,
+  setRender,
+  shiftMonth,
+  state,
+  wineLabel,
+} = await import(`./shared.js${new URL(import.meta.url).search}`);
+
+const boardEl = document.getElementById('board');
+const monthLabel = document.getElementById('monthLabel');
+const statsEl = document.getElementById('stats');
+
+function customerIdFromUrl(search = window.location.search) {
+  return new URLSearchParams(search).get('customer') || '';
+}
+
+function urlForView(customerId = customerIdFromUrl()) {
+  const params = new URLSearchParams();
+  params.set('month', state.month);
+  if (customerId) params.set('customer', customerId);
+  return `${window.location.pathname}?${params.toString()}`;
+}
+
+function syncLocation(mode = 'replace') {
+  const url = urlForView();
+  const here = `${window.location.pathname}${window.location.search}`;
+  if (here === url) return;
+  if (mode === 'push') history.pushState({ month: state.month, customer: customerIdFromUrl() }, '', url);
+  else history.replaceState({ month: state.month, customer: customerIdFromUrl() }, '', url);
+}
+
+function customerHref(id) {
+  const params = new URLSearchParams();
+  params.set('customer', id);
+  params.set('month', state.month);
+  return `./allocations.html?${params.toString()}`;
+}
+
+function setMonthControls(open) {
+  document.getElementById('prevMonth').hidden = !open;
+  document.getElementById('nextMonth').hidden = !open;
+}
+
+function renderPicker(data) {
+  setMonthControls(false);
+  statsEl.innerHTML = '';
+  monthLabel.textContent = 'Allocations';
+  if (!data.customers.length) {
+    boardEl.innerHTML = '<div class="empty">No customers yet. Add them on the customers page.</div>';
+    return;
+  }
+  boardEl.innerHTML = `
+    <p class="muted pick-lead">Choose an account</p>
+    <ul class="pick-list">
+      ${data.customers.map((customer) => `
+        <li>
+          <a class="pick-link" href="${escapeHtml(customerHref(customer.id))}">
+            <span class="account-name">${escapeHtml(customer.name)}</span>
+            <span class="muted">${escapeHtml(customerEmails(customer).join(', ') || '')}</span>
+          </a>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+function renderCustomer(data, customerId) {
+  const customer = data.customers.find((entry) => entry.id === customerId);
+  setMonthControls(true);
+  monthLabel.textContent = formatMonthLabel(state.month);
+  if (!customer) {
+    statsEl.innerHTML = '';
+    boardEl.innerHTML = `
+      <div class="empty">
+        That account wasn’t found.
+        ${canEdit() ? '<a class="text-btn" href="./allocations.html">All accounts</a>' : ''}
+      </div>
+    `;
+    return;
+  }
+  const rows = customerAllocations(data, customer.id);
+  const total = rows.reduce((sum, row) => sum + (row.alloc.cases || 0), 0);
+  statsEl.innerHTML = `
+    <div class="stat"><b>${compactQty(total)}</b><span>Allocated</span></div>
+  `;
+  const back = canEdit()
+    ? `<p class="alloc-back"><a href="./allocations.html?month=${encodeURIComponent(state.month)}">All accounts</a></p>`
+    : '';
+  if (!rows.length) {
+    boardEl.innerHTML = `
+      ${back}
+      <h2 class="account-head">${escapeHtml(customer.name)}</h2>
+      <div class="empty">No allocation this month.</div>
+    `;
+    return;
+  }
+  boardEl.innerHTML = `
+    ${back}
+    <h2 class="account-head">${escapeHtml(customer.name)}</h2>
+    <ul class="alloc-list">
+      ${rows.map((row) => `
+        <li class="alloc-row">
+          <span>
+            <span class="account-name">${escapeHtml(wineLabel(row.wine))}</span>
+            <span class="muted">${escapeHtml(row.producer?.name || '')}</span>
+          </span>
+          ${renderFigure(row.alloc.cases)}
+          ${row.alloc.status
+            ? `<span class="status ${escapeHtml(row.alloc.status)}">${escapeHtml(row.alloc.status)}</span>`
+            : '<span></span>'}
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+function render(historyMode = 'replace') {
+  applyChrome();
+  if (state.access !== 'staff' && state.access !== 'account') return;
+  const data = model();
+  const customerId = state.access === 'account' ? state.accountId : customerIdFromUrl();
+  if (!customerId) renderPicker(data);
+  else renderCustomer(data, customerId);
+  syncLocation(historyMode);
+}
+
+async function reload() {
+  try {
+    await loadSession();
+    if (!routeAfterAccess()) return;
+    render();
+  } catch {
+    boardEl.innerHTML = '<div class="empty">Could not load allocations. Retry with the refresh button — local changes are kept.</div>';
+  }
+}
+
+setRender(render);
+bindMonthNav(async (delta) => {
+  state.month = shiftMonth(state.month, delta);
+  await loadMonth();
+  render('push');
+});
+window.addEventListener('popstate', async () => {
+  const previousMonth = state.month;
+  applyMonthFromUrl();
+  if (state.month !== previousMonth) await loadMonth();
+  render('replace');
+});
+boot(reload);
