@@ -4,6 +4,7 @@ import {
   loadEvents,
   monthKey,
   monthUrl,
+  parseMonthKey,
   formatMonthLabel,
   postEvents,
   shiftMonth,
@@ -50,6 +51,51 @@ const producerDialog = document.getElementById('producerDialog');
 const allocDock = document.getElementById('allocDock');
 const allocSpread = document.getElementById('allocSpread');
 const allocMinus = document.getElementById('allocMinus');
+
+function isMonthKey(key) {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(key) && monthKey(parseMonthKey(key)) === key;
+}
+
+function viewFromSearch(search = window.location.search) {
+  const params = new URLSearchParams(search);
+  return {
+    month: params.get('month') || '',
+    producerId: params.get('producer') || '',
+    wineId: params.get('wine') || '',
+  };
+}
+
+function applyViewFromUrl() {
+  const view = viewFromSearch();
+  if (isMonthKey(view.month)) state.month = view.month;
+  state.producerId = view.producerId || null;
+  state.wineId = view.wineId || null;
+}
+
+function urlForView() {
+  const params = new URLSearchParams();
+  params.set('month', state.month);
+  if (state.producerId) params.set('producer', state.producerId);
+  if (state.wineId) params.set('wine', state.wineId);
+  return `${window.location.pathname}?${params.toString()}`;
+}
+
+function locationKey() {
+  return `${state.month}|${state.producerId || ''}|${state.wineId || ''}`;
+}
+
+let lastLocationKey = '';
+
+function syncLocation(mode = 'replace') {
+  const key = locationKey();
+  const url = urlForView();
+  const here = `${window.location.pathname}${window.location.search}`;
+  if (key === lastLocationKey && here === url) return;
+  lastLocationKey = key;
+  const data = { month: state.month, producerId: state.producerId, wineId: state.wineId };
+  if (mode === 'push') history.pushState(data, '', url);
+  else history.replaceState(data, '', url);
+}
 
 function setSync(status) {
   syncEl.className = `sync ${status}`;
@@ -353,12 +399,15 @@ function wineLabel(wine) {
 
 function syncSelection(data) {
   const producers = producersOnMonth(data);
+  const monthWines = winesOnMonth(data);
   if (!producers.length) {
     state.producerId = null;
     if (state.wineId) state.selectedAccounts.clear();
     state.wineId = null;
     return { producer: null, wines: [], wine: null };
   }
+  const linkedWine = monthWines.find((item) => item.id === state.wineId);
+  if (linkedWine) state.producerId = linkedWine.producerId;
   const producer = producers.find((item) => item.id === state.producerId) || producers[0];
   state.producerId = producer.id;
   const wines = winesForProducer(data, producer.id);
@@ -502,7 +551,7 @@ function syncDock() {
   allocSpread.disabled = remaining <= 0;
 }
 
-function render() {
+function render(historyMode = 'replace') {
   const data = model();
   const { producer, wines, wine } = syncSelection(data);
   monthLabel.textContent = formatMonthLabel(state.month);
@@ -512,6 +561,7 @@ function render() {
   renderBoard(data, producer, wine);
   renderLists(data);
   syncDock();
+  syncLocation(historyMode);
 }
 
 async function persistAllotment(wineId, patch) {
@@ -967,13 +1017,13 @@ function bind() {
     state.month = shiftMonth(state.month, -1);
     state.selectedAccounts.clear();
     await loadMonth();
-    render();
+    render('push');
   });
   document.getElementById('nextMonth').addEventListener('click', async () => {
     state.month = shiftMonth(state.month, 1);
     state.selectedAccounts.clear();
     await loadMonth();
-    render();
+    render('push');
   });
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
   producerNav.addEventListener('click', (event) => {
@@ -982,14 +1032,14 @@ function bind() {
     state.producerId = chip.dataset.id;
     state.wineId = null;
     state.selectedAccounts.clear();
-    render();
+    render('push');
   });
   wineNav.addEventListener('click', (event) => {
     const chip = event.target.closest('[data-id]');
     if (!chip) return;
     if (chip.dataset.id !== state.wineId) state.selectedAccounts.clear();
     state.wineId = chip.dataset.id;
-    render();
+    render('push');
   });
   boardEl.addEventListener('input', onBoardInput);
   boardEl.addEventListener('click', onBoardClick);
@@ -1065,7 +1115,15 @@ function bind() {
     producerDialog.close();
     event.target.reset();
   });
+  window.addEventListener('popstate', async () => {
+    const previousMonth = state.month;
+    applyViewFromUrl();
+    state.selectedAccounts.clear();
+    if (state.month !== previousMonth) await loadMonth();
+    render('replace');
+  });
 }
 
 bind();
+applyViewFromUrl();
 loadAll();
