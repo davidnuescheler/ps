@@ -83,14 +83,14 @@ document.getElementById('customerForm').addEventListener('submit', async (event)
   const name = document.getElementById('customerName').value.trim();
   const emails = parseEmails(document.getElementById('customerEmails').value).join(', ');
   if (editingCustomerId) {
-    await save('catalog', {
+    await save('customers', {
       op: 'customer_updated',
       id: editingCustomerId,
       name,
       emails,
     });
   } else {
-    await save('catalog', {
+    await save('customers', {
       op: 'customer_added',
       id: generateId(),
       name,

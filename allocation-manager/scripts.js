@@ -10,11 +10,11 @@ const {
   compactQty,
   escapeHtml,
   formatMonthLabel,
-  generateId,
   loadMonth,
   loadSession,
   model,
   packFrom,
+  producerIdFor,
   qtyPhrase,
   renderFigure,
   routeAfterAccess,
@@ -23,8 +23,10 @@ const {
   setRender,
   shiftMonth,
   state,
+  wineIdFor,
   winesOnMonth,
   wineLabel,
+  wineFromRow,
 } = await import(`./shared.js${new URL(import.meta.url).search}`);
 
 const catalogMod = await import(`../scripts/catalog.js${assetQuery}`);
@@ -301,12 +303,21 @@ async function persistAllotment(wineId, patch) {
   if (!canEdit()) return;
   const data = model();
   const current = data.allotments.get(wineId) || { cases: 0, wholesale: 0, retail: 0 };
+  const wine = data.wines.find((item) => item.id === wineId);
   await save('month', {
     op: 'allotment_set',
     wineId,
     cases: patch.cases ?? current.cases,
     wholesale: patch.wholesale ?? current.wholesale,
     retail: patch.retail ?? current.retail,
+    name: patch.name ?? current.name ?? wine?.name ?? '',
+    vintage: patch.vintage ?? current.vintage ?? wine?.vintage ?? '',
+    producer: patch.producer ?? current.producer ?? wine?.producer ?? '',
+    producerId: patch.producerId ?? current.producerId ?? wine?.producerId ?? '',
+    color: patch.color ?? current.color ?? wine?.color ?? '',
+    appellation: patch.appellation ?? current.appellation ?? wine?.appellation ?? '',
+    format: patch.format ?? current.format ?? wine?.format ?? '',
+    itemCode: patch.itemCode ?? current.itemCode ?? wine?.itemCode ?? '',
   });
 }
 
@@ -449,18 +460,10 @@ function formatFromRow(row) {
   return String(row.Size || '').trim();
 }
 
-function colorForName(name) {
-  const palette = ['#7a2436', '#c48a2a', '#6b3a5a', '#2c4a6e', '#44513d', '#9a6a42', '#4a1420', '#6d7b63'];
-  const key = foldName(name);
-  let hash = 0;
-  for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) % 997;
-  return palette[hash % palette.length];
-}
-
-function wineIdFor(row) {
-  const code = String(row['Item Code'] || '').trim();
-  if (!code) return generateId();
-  return `wine-${code.replace(/[^0-9A-Za-z]+/g, '-')}`.replace(/-+/g, '-').replace(/^-|-$/g, '');
+function findExistingWine(data, row) {
+  const id = wineIdFor(row);
+  if (!id) return null;
+  return data.wines.find((wine) => wine.id === id || (wine.itemCode && wine.itemCode === String(row['Item Code'] || '').trim())) || null;
 }
 
 function rowKey(row) {
@@ -471,26 +474,6 @@ function rowKey(row) {
     String(row.Vintage || '').trim(),
     String(row.Size || '').trim(),
   ].join('\u001f');
-}
-
-function findProducerForRow(data, row) {
-  return data.producers.find((producer) => namesMatch(producer.name, row.Producer)) || null;
-}
-
-function findExistingWine(data, row) {
-  const code = String(row['Item Code'] || '').trim();
-  if (code) {
-    const byCode = data.wines.find((wine) => wine.itemCode === code || wine.id === `wine-${code}` || wine.id === wineIdFor(row));
-    if (byCode) return byCode;
-  }
-  const producer = findProducerForRow(data, row);
-  const vintage = String(row.Vintage || '').trim();
-  return data.wines.find((wine) => {
-    if (vintage && String(wine.vintage || '').trim() !== vintage) return false;
-    if (producer && wine.producerId !== producer.id) return false;
-    if (!producer && !namesMatch(data.producers.find((item) => item.id === wine.producerId)?.name, row.Producer)) return false;
-    return namesMatch(wine.name, row.Wine);
-  }) || null;
 }
 
 function pickerEls() {
@@ -583,8 +566,8 @@ function renderPickerList() {
 
   list.innerHTML = rows.map((row) => {
     const cat = wineCategory(row);
-    const existing = findExistingWine(data, row);
-    const onMonth = existing && data.allotments.has(existing.id);
+    const id = wineIdFor(row);
+    const onMonth = id && data.allotments.has(id);
     const producer = prettyName(row.Producer);
     const wine = prettyName(row.Wine);
     const region = prettyName(row['Region/Sub Region']);
@@ -592,7 +575,7 @@ function renderPickerList() {
     const format = formatFromRow(row);
     const price = formatPrice(row['UT Per BTL']);
     const meta = [region, vintage, format === 'magnum' ? 'Magnum' : ''].filter(Boolean).join(' · ');
-    const note = onMonth ? 'On this month' : existing ? 'On the book' : '';
+    const note = onMonth ? 'On this month' : '';
     const key = rowKey(row);
     return `
       <button type="button" class="picker-wine" role="option" data-key="${escapeHtml(key)}" data-cat="${cat}" data-search="${escapeHtml(wineHaystack(row, cat, '', price))}" aria-selected="${key === state.pickerKey}">
@@ -633,41 +616,26 @@ async function openWineDialog() {
 }
 
 async function addCatalogWine(row, allotment) {
-  const data = model();
-  const existing = findExistingWine(data, row);
-  let producerId = existing?.producerId || findProducerForRow(data, row)?.id;
-  if (!producerId) {
-    producerId = generateId();
-    await save('catalog', {
-      op: 'producer_added',
-      id: producerId,
-      name: prettyName(row.Producer),
-      region: prettyName(row['Region/Sub Region']).replace(/[()]/g, '').trim(),
-      color: colorForName(row.Producer),
-    });
-  }
-  const wineId = existing?.id || wineIdFor(row);
-  if (!existing) {
-    await save('catalog', {
-      op: 'wine_added',
-      id: wineId,
-      producerId,
-      name: prettyName(row.Wine),
-      vintage: String(row.Vintage || '').trim(),
-      color: wineCategory(row),
-      appellation: prettyName(row['Region/Sub Region']),
-      format: formatFromRow(row),
-      itemCode: String(row['Item Code'] || '').trim(),
-    });
-  }
-  state.producerId = producerId;
-  state.wineId = wineId;
-  await persistAllotment(wineId, allotment);
+  const wine = wineFromRow({ ...row, format: formatFromRow(row) });
+  if (!wine?.id) return;
+  state.producerId = wine.producerId;
+  state.wineId = wine.id;
+  await persistAllotment(wine.id, {
+    ...allotment,
+    name: wine.name,
+    vintage: wine.vintage,
+    producer: wine.producer,
+    producerId: wine.producerId,
+    color: wine.color,
+    appellation: wine.appellation,
+    format: wine.format,
+    itemCode: wine.itemCode,
+  });
 }
 
 async function reload() {
   try {
-    await loadSession({ seedMonth: true, loadWineList: true });
+    await loadSession();
     if (!routeAfterAccess()) return;
     render();
   } catch {

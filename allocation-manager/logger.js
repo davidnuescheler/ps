@@ -80,6 +80,10 @@ export function catalogUrl() {
   return `${API_BASE}/catalog`;
 }
 
+export function customersUrl() {
+  return `${API_BASE}/customers`;
+}
+
 export function monthUrl(key) {
   return `${API_BASE}/months/${key}`;
 }

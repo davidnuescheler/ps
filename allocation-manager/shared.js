@@ -1,10 +1,10 @@
 export const assetQuery = new URL(import.meta.url).search;
 
 const logger = await import(`./logger.js${assetQuery}`);
-const seed = await import(`./seed.js${assetQuery}`);
 
 export const {
   catalogUrl,
+  customersUrl,
   generateId,
   getEmail,
   isStaffEmail,
@@ -19,13 +19,14 @@ export const {
   shiftMonth,
 } = logger;
 
-const { catalogSeedEvents, monthSeedEvents } = seed;
+const catalogMod = await import(`../scripts/catalog.js${assetQuery}`);
+const { loadCatalog, prettyName, wineCategory } = catalogMod;
 
 export const PAGE = document.body.dataset.page || 'place';
 
 export const state = {
   month: monthKey(),
-  catalog: [],
+  customers: [],
   monthLog: [],
   producerId: null,
   wineId: null,
@@ -36,6 +37,8 @@ export const state = {
   selectedAccounts: new Set(),
   access: 'pending',
   accountId: null,
+  legacyWines: new Map(),
+  legacyProducers: new Map(),
 };
 
 let renderFn = () => {};
@@ -282,32 +285,81 @@ export function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
-export function replayCatalog(changelog) {
+function foldName(value) {
+  return prettyName(value)
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+export function producerIdFor(name) {
+  const slug = foldName(name).replace(/\s+/g, '-') || 'producer';
+  return `prod-${slug}`.slice(0, 80);
+}
+
+export function wineIdFor(row) {
+  const code = String(row['Item Code'] || row.itemCode || '').trim();
+  if (!code) return '';
+  return `wine-${code.replace(/[^0-9A-Za-z]+/g, '-')}`.replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+function colorForName(name) {
+  const palette = ['#7a2436', '#c48a2a', '#6b3a5a', '#2c4a6e', '#44513d', '#9a6a42', '#4a1420', '#6d7b63'];
+  const key = foldName(name);
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) % 997;
+  return palette[hash % palette.length];
+}
+
+export function wineFromRow(row) {
+  const producerName = prettyName(row.Producer || row.producer || '');
+  const id = wineIdFor(row) || row.id;
+  if (!id) return null;
+  return {
+    id,
+    producerId: row.producerId || producerIdFor(producerName),
+    producer: producerName,
+    name: prettyName(row.Wine || row.name || ''),
+    vintage: String(row.Vintage || row.vintage || '').trim(),
+    appellation: prettyName(row['Region/Sub Region'] || row.appellation || ''),
+    color: row.color || wineCategory(row),
+    format: row.format || '',
+    itemCode: String(row['Item Code'] || row.itemCode || '').trim(),
+  };
+}
+
+function bookFromList(rows) {
   const producers = new Map();
+  const wines = [];
+  rows.forEach((row) => {
+    const wine = wineFromRow(row);
+    if (!wine) return;
+    if (!producers.has(wine.producerId)) {
+      producers.set(wine.producerId, {
+        id: wine.producerId,
+        name: wine.producer,
+        region: wine.appellation,
+        color: colorForName(wine.producer),
+      });
+    }
+    wines.push(wine);
+  });
+  return { producers, wines };
+}
+
+function customerEvents(events) {
+  return events.filter((event) => String(event.op || '').startsWith('customer_'));
+}
+
+export function replayCustomers(changelog) {
   const customers = new Map();
-  const wines = new Map();
-  const producerOrder = [];
   const customerOrder = [];
-  const wineOrder = [];
 
   [...changelog].sort((a, b) => String(a.ts || '').localeCompare(String(b.ts || ''))).forEach((event) => {
-    if (event.op === 'producer_added' && event.id) {
-      producers.set(event.id, {
-        id: event.id,
-        name: event.name || '',
-        color: event.color || '#7a2436',
-        region: event.region || '',
-      });
-      if (!producerOrder.includes(event.id)) producerOrder.push(event.id);
-    } else if (event.op === 'producer_updated' && producers.has(event.id)) {
-      Object.assign(producers.get(event.id), {
-        name: event.name ?? producers.get(event.id).name,
-        color: event.color ?? producers.get(event.id).color,
-        region: event.region ?? producers.get(event.id).region,
-      });
-    } else if (event.op === 'producer_removed') {
-      producers.delete(event.id);
-    } else if (event.op === 'customer_added' && event.id) {
+    if (event.op === 'customer_added' && event.id) {
       customers.set(event.id, {
         id: event.id,
         name: event.name || '',
@@ -324,6 +376,23 @@ export function replayCatalog(changelog) {
       });
     } else if (event.op === 'customer_removed') {
       customers.delete(event.id);
+    }
+  });
+
+  return customerOrder.map((id) => customers.get(id)).filter(Boolean);
+}
+
+function replayLegacyBook(changelog) {
+  const producers = new Map();
+  const wines = new Map();
+  [...changelog].sort((a, b) => String(a.ts || '').localeCompare(String(b.ts || ''))).forEach((event) => {
+    if (event.op === 'producer_added' && event.id) {
+      producers.set(event.id, {
+        id: event.id,
+        name: event.name || '',
+        color: event.color || '#7a2436',
+        region: event.region || '',
+      });
     } else if (event.op === 'wine_added' && event.id) {
       wines.set(event.id, {
         id: event.id,
@@ -335,28 +404,9 @@ export function replayCatalog(changelog) {
         format: event.format || '',
         itemCode: event.itemCode || '',
       });
-      if (!wineOrder.includes(event.id)) wineOrder.push(event.id);
-    } else if (event.op === 'wine_updated' && wines.has(event.id)) {
-      const wine = wines.get(event.id);
-      Object.assign(wine, {
-        name: event.name ?? wine.name,
-        vintage: event.vintage ?? wine.vintage,
-        appellation: event.appellation ?? wine.appellation,
-        color: event.color ?? wine.color,
-        format: event.format ?? wine.format,
-        producerId: event.producerId ?? wine.producerId,
-        itemCode: event.itemCode ?? wine.itemCode,
-      });
-    } else if (event.op === 'wine_removed') {
-      wines.delete(event.id);
     }
   });
-
-  return {
-    producers: producerOrder.map((id) => producers.get(id)).filter(Boolean),
-    customers: customerOrder.map((id) => customers.get(id)).filter(Boolean),
-    wines: wineOrder.map((id) => wines.get(id)).filter(Boolean),
-  };
+  return { producers, wines };
 }
 
 export function replayMonth(changelog) {
@@ -370,6 +420,14 @@ export function replayMonth(changelog) {
         cases: Number(event.cases) || 0,
         wholesale: Number(event.wholesale) || 0,
         retail: Number(event.retail) || 0,
+        name: event.name || '',
+        vintage: event.vintage || '',
+        producer: event.producer || '',
+        producerId: event.producerId || '',
+        color: event.color || '',
+        appellation: event.appellation || '',
+        format: event.format || '',
+        itemCode: event.itemCode || '',
       });
     } else if (event.op === 'allocation_set' && event.wineId && event.customerId) {
       const key = `${event.wineId}:${event.customerId}`;
@@ -389,8 +447,48 @@ export function replayMonth(changelog) {
   return { allotments, allocations };
 }
 
+function wineFromAllotment(allot) {
+  if (!allot?.name && !allot?.producer) return null;
+  const producerName = allot.producer || '';
+  return {
+    id: allot.wineId,
+    producerId: allot.producerId || producerIdFor(producerName),
+    producer: producerName,
+    name: allot.name || '',
+    vintage: allot.vintage || '',
+    appellation: allot.appellation || '',
+    color: allot.color || 'red',
+    format: allot.format || '',
+    itemCode: allot.itemCode || '',
+  };
+}
+
 export function model() {
-  return { ...replayCatalog(state.catalog), ...replayMonth(state.monthLog) };
+  const customers = replayCustomers(state.customers);
+  const month = replayMonth(state.monthLog);
+  const book = bookFromList(state.list);
+  const wines = new Map(book.wines.map((wine) => [wine.id, wine]));
+  const producers = new Map(book.producers);
+  month.allotments.forEach((allot, id) => {
+    if (wines.has(id)) return;
+    const wine = wineFromAllotment(allot) || state.legacyWines.get(id);
+    if (!wine) return;
+    wines.set(id, wine);
+    if (wine.producerId && !producers.has(wine.producerId)) {
+      producers.set(wine.producerId, state.legacyProducers.get(wine.producerId) || {
+        id: wine.producerId,
+        name: wine.producer || '',
+        color: colorForName(wine.producer || wine.producerId),
+        region: wine.appellation || '',
+      });
+    }
+  });
+  return {
+    customers,
+    wines: [...wines.values()],
+    producers: [...producers.values()],
+    ...month,
+  };
 }
 
 export function winesOnMonth(data) {
@@ -421,11 +519,11 @@ export async function save(kind, event) {
 
 export async function saveMany(kind, events) {
   if (!canEdit() || !events.length) return;
-  const url = kind === 'catalog' ? catalogUrl() : monthUrl(state.month);
+  const url = kind === 'month' ? monthUrl(state.month) : customersUrl();
   setSync('syncing');
   const stamped = events.map((event) => ({ ...event, ts: new Date().toISOString() }));
-  if (kind === 'catalog') state.catalog.push(...stamped);
-  else state.monthLog.push(...stamped);
+  if (kind === 'month') state.monthLog.push(...stamped);
+  else state.customers.push(...stamped);
   renderFn();
   try {
     await postEvents(url, events);
@@ -440,62 +538,51 @@ export async function loadMonth() {
   const result = await loadEvents(monthUrl(state.month));
   state.monthLog = result.events;
   state.source = result.source;
+  await hydrateLegacyWines();
   setSync(result.source === 'server' ? 'synced' : 'local');
 }
 
-function idsOf(items) {
-  return new Set(items.map((item) => item.id));
-}
-
-async function seedCatalogIfNeeded() {
-  const data = model();
-  const producerIds = idsOf(data.producers);
-  const customerIds = idsOf(data.customers);
-  const wineIds = idsOf(data.wines);
-  const catalogMissing = catalogSeedEvents().filter((event) => {
-    if (event.op === 'producer_added') return !producerIds.has(event.id);
-    if (event.op === 'customer_added') return !customerIds.has(event.id);
-    if (event.op === 'wine_added') return !wineIds.has(event.id);
-    return false;
-  });
-  if (!catalogMissing.length) return;
-  await postEvents(catalogUrl(), catalogMissing);
-  const seeded = await loadEvents(catalogUrl());
-  if (seeded.events.length >= state.catalog.length) state.catalog = seeded.events;
-  else {
-    catalogMissing.forEach((event) => {
-      state.catalog.push({ ...event, ts: new Date().toISOString() });
-    });
+async function loadCustomers() {
+  const current = await loadEvents(customersUrl());
+  if (customerEvents(current.events).length) {
+    state.customers = current.events;
+    state.source = current.source;
+    return;
   }
-}
-
-async function seedMonthIfNeeded() {
-  const data = model();
-  const existingAllot = new Set(data.allotments.keys());
-  const existingAlloc = new Set(data.allocations.keys());
-  const monthMissing = monthSeedEvents().filter((event) => {
-    if (event.op === 'allotment_set') return !existingAllot.has(event.wineId);
-    if (event.op === 'allocation_set') {
-      return !existingAlloc.has(`${event.wineId}:${event.customerId}`);
-    }
-    return false;
-  });
-  const exampleMonthKey = 'psAlloc_exampleMonth';
-  const exampleMonth = localStorage.getItem(exampleMonthKey);
-  if (monthMissing.length && data.wines.length && (!exampleMonth || exampleMonth === state.month)) {
-    localStorage.setItem(exampleMonthKey, state.month);
-    await postEvents(monthUrl(state.month), monthMissing);
-    const monthSeeded = await loadEvents(monthUrl(state.month));
-    if (monthSeeded.events.length >= state.monthLog.length) state.monthLog = monthSeeded.events;
-    else {
-      monthMissing.forEach((event) => {
-        state.monthLog.push({ ...event, ts: new Date().toISOString() });
-      });
-    }
+  const legacy = await loadEvents(catalogUrl());
+  const migrated = customerEvents(legacy.events);
+  if (migrated.length && isStaffEmail(getEmail())) {
+    await postEvents(customersUrl(), migrated.map((event) => ({
+      op: event.op,
+      id: event.id,
+      name: event.name,
+      kind: event.kind,
+      emails: event.emails || '',
+    })));
+    const seeded = await loadEvents(customersUrl());
+    state.customers = customerEvents(seeded.events).length ? seeded.events : migrated;
+    state.source = seeded.source;
+    return;
   }
+  state.customers = migrated;
+  state.source = current.source || legacy.source;
 }
 
-export async function loadSession({ seedMonth = false, loadWineList = false } = {}) {
+async function hydrateLegacyWines() {
+  const month = replayMonth(state.monthLog);
+  const known = new Set(bookFromList(state.list).wines.map((wine) => wine.id));
+  month.allotments.forEach((allot, id) => {
+    if (known.has(id) || wineFromAllotment(allot) || state.legacyWines.has(id)) known.add(id);
+  });
+  const missing = [...month.allotments.keys()].filter((id) => !known.has(id));
+  if (!missing.length) return;
+  const legacy = await loadEvents(catalogUrl());
+  const book = replayLegacyBook(legacy.events);
+  book.wines.forEach((wine, id) => state.legacyWines.set(id, wine));
+  book.producers.forEach((producer, id) => state.legacyProducers.set(id, producer));
+}
+
+export async function loadSession() {
   if (!getEmail()) {
     state.access = 'pending';
     applyChrome();
@@ -503,9 +590,7 @@ export async function loadSession({ seedMonth = false, loadWineList = false } = 
   }
   setSync('syncing');
   try {
-    const catalog = await loadEvents(catalogUrl());
-    state.catalog = catalog.events;
-    state.source = catalog.source;
+    await loadCustomers();
     resolveAccess();
     if (state.access === 'denied' || state.access === 'pending') {
       setSync(state.source === 'server' ? 'synced' : 'local');
@@ -513,16 +598,9 @@ export async function loadSession({ seedMonth = false, loadWineList = false } = 
       return state.access;
     }
 
-    if (state.access === 'staff') {
-      if (loadWineList) {
-        const catalogMod = await import(`../scripts/catalog.js${assetQuery}`);
-        state.list = await catalogMod.loadCatalog();
-      }
-      await seedCatalogIfNeeded();
-    }
-
+    state.list = await loadCatalog();
     await loadMonth();
-    if (state.access === 'staff' && seedMonth) await seedMonthIfNeeded();
+    await hydrateLegacyWines();
 
     resolveAccess();
     setSync(state.source === 'server' ? 'synced' : 'local');
