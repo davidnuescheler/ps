@@ -24,6 +24,15 @@ const {
 const boardEl = document.getElementById('board');
 const monthLabel = document.getElementById('monthLabel');
 const statsEl = document.getElementById('stats');
+const DEFAULT_TITLE = 'Allocations — Public Sediments';
+
+function setDocumentTitle(customer) {
+  if (!customer?.name) {
+    document.title = DEFAULT_TITLE;
+    return;
+  }
+  document.title = `${customer.name} — ${formatMonthLabel(state.month)} — Public Sediments`;
+}
 
 function customerIdFromUrl(search = window.location.search) {
   return new URLSearchParams(search).get('customer') || '';
@@ -90,6 +99,7 @@ function printHead(customer) {
 }
 
 function renderPicker(data) {
+  setDocumentTitle();
   setMonthControls(true);
   monthLabel.textContent = formatMonthLabel(state.month);
   const totals = data.customers.map((customer) => allocatedCases(data, customer.id));
@@ -121,6 +131,7 @@ function renderPicker(data) {
 
 function renderCustomer(data, customerId) {
   const customer = data.customers.find((entry) => entry.id === customerId);
+  setDocumentTitle(customer);
   setMonthControls(true);
   monthLabel.textContent = formatMonthLabel(state.month);
   if (!customer) {
