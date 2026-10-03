@@ -1063,3 +1063,147 @@ label { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; c
   .dialog-actions { flex-wrap: wrap; }
   .dialog-actions .btn { min-height: 2.75rem; }
 }
+
+.print-head,
+.print-only { display: none; }
+
+@media print {
+  @page {
+    margin: 16mm 22mm 16mm 16mm;
+    size: letter;
+  }
+
+  html, body {
+    background: #fff;
+    color: #111;
+    font-size: 11pt;
+    line-height: 1.35;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  body::before,
+  body::after { display: none; }
+
+  .gate,
+  .header-tools,
+  .toolbar,
+  .screen-only { display: none !important; }
+
+  body:has(.alloc-sheet) .site-header { display: none; }
+
+  .wrap {
+    width: auto;
+    margin: 0;
+    padding-right: 8mm;
+  }
+
+  .board { gap: 0; }
+
+  .print-head,
+  .print-only { display: block; }
+
+  .print-head {
+    margin: 0 0 1.4rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 2px solid #111;
+  }
+  .print-kicker {
+    margin: 0 0 0.35rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: #7a2436;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-head h1 {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 1.85rem;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+  }
+  .print-account {
+    margin: 0.85rem 0 0.15rem;
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 400;
+  }
+  .print-month {
+    margin: 0;
+    color: #444;
+    font-size: 0.95rem;
+  }
+
+  .alloc-sheet .account-head { display: none; }
+  .alloc-sheet .empty {
+    margin: 0;
+    padding: 1.2rem 0;
+    border: 0;
+    background: none;
+  }
+  .alloc-sheet .icon-case,
+  .alloc-sheet .icon-bottle,
+  .alloc-sheet .figure-pack { display: none !important; }
+
+  .alloc-list { gap: 0; }
+  .alloc-cols,
+  .alloc-row,
+  .alloc-totals {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.6fr) minmax(8.5rem, 1fr) 8rem 7.4rem;
+    gap: 0.6rem 1rem;
+    align-items: end;
+    padding: 0.55rem 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .alloc-cols {
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid #111;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #444;
+  }
+  .alloc-row {
+    border-bottom: 1px solid #ddd;
+    break-inside: avoid;
+  }
+  .alloc-qty-words,
+  .alloc-price,
+  .alloc-amount {
+    display: block;
+    font-family: var(--sans);
+    font-size: 0.95rem;
+  }
+  .alloc-price,
+  .alloc-amount,
+  .alloc-cols span:nth-child(3),
+  .alloc-cols span:nth-child(4),
+  .alloc-totals span:nth-child(3),
+  .alloc-totals span:nth-child(4) { text-align: right; }
+  .alloc-amount { font-variant-numeric: tabular-nums; padding-right: 0.35rem; white-space: nowrap; }
+  .alloc-row .account-name {
+    font-size: 1.05rem;
+  }
+  .alloc-row .muted {
+    color: #444;
+    font-size: 0.8rem;
+  }
+  .alloc-totals {
+    margin: 0;
+    padding-top: 0.7rem;
+    border-top: 2px solid #111;
+    font-weight: 500;
+  }
+  .alloc-totals span:first-child {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-weight: 400;
+  }
+}

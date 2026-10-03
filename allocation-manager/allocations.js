@@ -12,6 +12,7 @@ const {
   loadMonth,
   loadSession,
   model,
+  qtyPhrase,
   renderFigure,
   routeAfterAccess,
   setRender,
@@ -59,6 +60,35 @@ function allocatedCases(data, customerId) {
   return customerAllocations(data, customerId).reduce((sum, row) => sum + (row.alloc.cases || 0), 0);
 }
 
+function formatMoney(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+function pricedRows(data, customerId) {
+  return customerAllocations(data, customerId).map((row) => {
+    const retail = Number(data.allotments.get(row.wine.id)?.retail) || 0;
+    return { ...row, retail, amount: (row.alloc.cases || 0) * retail };
+  });
+}
+
+function printHead(customer) {
+  return `
+    <header class="print-head">
+      <p class="print-kicker">Public Sediments</p>
+      <h1>Allocation</h1>
+      <p class="print-account">${escapeHtml(customer.name)}</p>
+      <p class="print-month">${escapeHtml(formatMonthLabel(state.month))}</p>
+    </header>
+  `;
+}
+
 function renderPicker(data) {
   setMonthControls(true);
   monthLabel.textContent = formatMonthLabel(state.month);
@@ -103,39 +133,63 @@ function renderCustomer(data, customerId) {
     `;
     return;
   }
-  const rows = customerAllocations(data, customer.id);
+  const rows = pricedRows(data, customer.id);
   const total = allocatedCases(data, customer.id);
+  const totalAmount = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
   statsEl.innerHTML = `
     <div class="stat"><b>${compactQty(total)}</b><span>Allocated</span></div>
   `;
   const back = canEdit()
-    ? `<p class="alloc-back"><a href="./allocations.html?month=${encodeURIComponent(state.month)}">All accounts</a></p>`
+    ? `<p class="alloc-back screen-only"><a href="./allocations.html?month=${encodeURIComponent(state.month)}">All accounts</a></p>`
     : '';
   if (!rows.length) {
     boardEl.innerHTML = `
-      ${back}
-      <h2 class="account-head">${escapeHtml(customer.name)}</h2>
-      <div class="empty">No allocation this month.</div>
+      <article class="alloc-sheet">
+        ${printHead(customer)}
+        ${back}
+        <h2 class="account-head">${escapeHtml(customer.name)}</h2>
+        <div class="empty">No allocation this month.</div>
+      </article>
     `;
     return;
   }
   boardEl.innerHTML = `
-    ${back}
-    <h2 class="account-head">${escapeHtml(customer.name)}</h2>
-    <ul class="alloc-list">
-      ${rows.map((row) => `
-        <li class="alloc-row">
-          <span>
-            <span class="account-name">${escapeHtml(wineLabel(row.wine))}</span>
-            <span class="muted">${escapeHtml(row.producer?.name || '')}</span>
-          </span>
-          ${renderFigure(row.alloc.cases)}
-          ${row.alloc.status
-            ? `<span class="status ${escapeHtml(row.alloc.status)}">${escapeHtml(row.alloc.status)}</span>`
-            : '<span></span>'}
+    <article class="alloc-sheet">
+      ${printHead(customer)}
+      ${back}
+      <h2 class="account-head">${escapeHtml(customer.name)}</h2>
+      <ul class="alloc-list">
+        <li class="alloc-cols print-only" aria-hidden="true">
+          <span>Wine</span>
+          <span>Quantity</span>
+          <span>Price</span>
+          <span>Total</span>
         </li>
-      `).join('')}
-    </ul>
+        ${rows.map((row) => `
+          <li class="alloc-row">
+            <span class="alloc-wine">
+              <span class="account-name">${escapeHtml(wineLabel(row.wine))}</span>
+              <span class="muted">${escapeHtml(row.producer?.name || '')}</span>
+            </span>
+            <span class="alloc-qty">
+              ${renderFigure(row.alloc.cases)}
+              <span class="alloc-qty-words print-only">${escapeHtml(qtyPhrase(row.alloc.cases))}</span>
+            </span>
+            ${row.alloc.status
+              ? `<span class="status screen-only ${escapeHtml(row.alloc.status)}">${escapeHtml(row.alloc.status)}</span>`
+              : '<span class="screen-only"></span>'}
+            <span class="alloc-price print-only">${row.retail ? `${formatMoney(row.retail)} / case` : '—'}</span>
+            <span class="alloc-amount print-only">${formatMoney(row.amount)}</span>
+          </li>
+        `).join('')}
+      </ul>
+      <p class="alloc-totals print-only">
+        <span>Total</span>
+        <span>${escapeHtml(qtyPhrase(total))}</span>
+        <span></span>
+        <span>${formatMoney(totalAmount)}</span>
+      </p>
+    </article>
   `;
 }
 
