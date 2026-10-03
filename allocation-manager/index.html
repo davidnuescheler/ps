@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Allocation Manager — Public Sediments</title>
   <meta name="description" content="Month-by-month case allotments and customer allocations for Public Sediments.">
   <link rel="canonical" href="https://main--ps--davidnuescheler.aem.live/allocation-manager/">
@@ -65,6 +65,12 @@
       <button class="btn btn-solid" id="addWineBtn">Add wine</button>
       <button class="btn" id="addCustomerBtn">Add customer</button>
       <button class="btn" id="showEmptyBtn" aria-pressed="false">Show empty accounts</button>
+    </div>
+
+    <div class="alloc-dock" id="allocDock" hidden>
+      <button type="button" id="allocMinus" aria-label="Remove one bottle">−</button>
+      <button type="button" id="allocPlus" aria-label="Add one bottle">+</button>
+      <button type="button" id="allocSpread">Spread</button>
     </div>
 
     <div class="manage">

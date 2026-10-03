@@ -5,7 +5,6 @@ import {
   monthKey,
   monthUrl,
   formatMonthLabel,
-  postEvent,
   postEvents,
   shiftMonth,
 } from './logger.js';
@@ -31,6 +30,7 @@ const state = {
   source: 'server',
   list: [],
   pickerKey: '',
+  selectedAccounts: new Set(),
 };
 
 const timers = new Map();
@@ -47,6 +47,9 @@ const showEmptyBtn = document.getElementById('showEmptyBtn');
 const wineDialog = document.getElementById('wineDialog');
 const customerDialog = document.getElementById('customerDialog');
 const producerDialog = document.getElementById('producerDialog');
+const allocDock = document.getElementById('allocDock');
+const allocSpread = document.getElementById('allocSpread');
+const allocMinus = document.getElementById('allocMinus');
 
 function setSync(status) {
   syncEl.className = `sync ${status}`;
@@ -70,6 +73,14 @@ function splitCases(value) {
     cases: Math.floor(abs / BOTTLES_PER_CASE) * (negative ? -1 : 1),
     leftover: (abs % BOTTLES_PER_CASE) * (negative ? -1 : 1),
   };
+}
+
+function casesFromBottles(bottles) {
+  return (Number(bottles) || 0) / BOTTLES_PER_CASE;
+}
+
+function bottlesOf(value) {
+  return Math.round((Number(value) || 0) * BOTTLES_PER_CASE);
 }
 
 function casesFromParts(cases, bottles) {
@@ -295,14 +306,19 @@ function debounce(key, fn, wait = 400) {
 }
 
 async function save(kind, event) {
+  return saveMany(kind, [event]);
+}
+
+async function saveMany(kind, events) {
+  if (!events.length) return;
   const url = kind === 'catalog' ? catalogUrl() : monthUrl(state.month);
   setSync('syncing');
-  const stamped = { ...event, ts: new Date().toISOString() };
-  if (kind === 'catalog') state.catalog.push(stamped);
-  else state.monthLog.push(stamped);
+  const stamped = events.map((event) => ({ ...event, ts: new Date().toISOString() }));
+  if (kind === 'catalog') state.catalog.push(...stamped);
+  else state.monthLog.push(...stamped);
   render();
   try {
-    await postEvent(url, event);
+    await postEvents(url, events);
     setSync(state.source === 'local' ? 'local' : 'synced');
   } catch {
     setSync('error');
@@ -310,7 +326,7 @@ async function save(kind, event) {
 }
 
 function renderStats(data) {
-  const { received, allocated, remaining } = totalsFor(data.wines, data.allotments, data.allocations);
+  const { received, allocated, remaining } = totalsFor(winesOnMonth(data), data.allotments, data.allocations);
   statsEl.innerHTML = `
     <div class="stat"><b>${compactQty(received)}</b><span>Received</span></div>
     <div class="stat"><b>${compactQty(allocated)}</b><span>Allocated</span></div>
@@ -318,8 +334,17 @@ function renderStats(data) {
   `;
 }
 
+function winesOnMonth(data) {
+  return data.wines.filter((wine) => data.allotments.has(wine.id));
+}
+
+function producersOnMonth(data) {
+  const ids = new Set(winesOnMonth(data).map((wine) => wine.producerId));
+  return data.producers.filter((producer) => ids.has(producer.id));
+}
+
 function winesForProducer(data, producerId) {
-  return data.wines.filter((wine) => wine.producerId === producerId);
+  return winesOnMonth(data).filter((wine) => wine.producerId === producerId);
 }
 
 function wineLabel(wine) {
@@ -327,21 +352,24 @@ function wineLabel(wine) {
 }
 
 function syncSelection(data) {
-  if (!data.producers.length) {
+  const producers = producersOnMonth(data);
+  if (!producers.length) {
     state.producerId = null;
+    if (state.wineId) state.selectedAccounts.clear();
     state.wineId = null;
     return { producer: null, wines: [], wine: null };
   }
-  const producer = data.producers.find((item) => item.id === state.producerId) || data.producers[0];
+  const producer = producers.find((item) => item.id === state.producerId) || producers[0];
   state.producerId = producer.id;
   const wines = winesForProducer(data, producer.id);
   const wine = wines.find((item) => item.id === state.wineId) || wines[0] || null;
+  if (wine?.id !== state.wineId) state.selectedAccounts.clear();
   state.wineId = wine?.id || null;
   return { producer, wines, wine };
 }
 
 function renderProducerNav(data) {
-  producerNav.innerHTML = data.producers.map((producer) => `
+  producerNav.innerHTML = producersOnMonth(data).map((producer) => `
     <button class="producer-chip" data-id="${producer.id}" aria-pressed="${producer.id === state.producerId}" style="--chip:${producer.color}">
       <span class="swatch"></span>${escapeHtml(producer.name)}
     </button>
@@ -374,22 +402,29 @@ function renderLists(data) {
 }
 
 function renderBoard(data, producer, wine) {
-  if (!producer) {
-    boardEl.innerHTML = '<div class="empty">No producers yet. Add the book, then allot wines for the month.</div>';
+  if (!winesOnMonth(data).length) {
+    showEmptyBtn.hidden = true;
+    boardEl.innerHTML = '<div class="empty">No wines this month yet. Add a wine to start this month’s allotment.</div>';
     return;
   }
-  if (!wine) {
-    boardEl.innerHTML = `<div class="empty">No wines on ${escapeHtml(producer.name)} yet. Add a wine to start this month’s allotment.</div>`;
+  if (!producer || !wine) {
+    showEmptyBtn.hidden = true;
+    boardEl.innerHTML = '<div class="empty">Pick a wine to place this month’s allotment.</div>';
     return;
   }
-
-  const visibleCustomers = data.customers.filter((customer) => {
-    if (state.showEmpty) return true;
-    return data.allocations.has(`${wine.id}:${customer.id}`);
-  });
 
   const allot = data.allotments.get(wine.id) || { cases: 0, wholesale: 0, retail: 0 };
   const allocated = allocatedForWine(wine.id, data.allocations);
+  const nothingAllocated = allocated <= 0.001;
+  const visibleCustomers = data.customers.filter((customer) => {
+    if (state.showEmpty || nothingAllocated) return true;
+    return data.allocations.has(`${wine.id}:${customer.id}`);
+  });
+  showEmptyBtn.hidden = nothingAllocated;
+  const visibleIds = new Set(visibleCustomers.map((customer) => customer.id));
+  [...state.selectedAccounts].forEach((id) => {
+    if (!visibleIds.has(id)) state.selectedAccounts.delete(id);
+  });
   const remaining = (allot.cases || 0) - allocated;
   const receivedBottles = Math.round((allot.cases || 0) * BOTTLES_PER_CASE);
   const allocatedBottles = Math.round(allocated * BOTTLES_PER_CASE);
@@ -405,8 +440,9 @@ function renderBoard(data, producer, wine) {
   const accounts = visibleCustomers.map((customer) => {
     const row = data.allocations.get(`${wine.id}:${customer.id}`);
     const status = row?.status || '';
+    const selected = state.selectedAccounts.has(customer.id);
     return `
-      <li class="account ${customer.kind === 'transfer' ? 'transfer' : ''}">
+      <li class="account ${customer.kind === 'transfer' ? 'transfer' : ''} ${selected ? 'is-selected' : ''}" data-customer="${escapeHtml(customer.id)}" aria-selected="${selected}">
         <span class="account-name">${escapeHtml(customer.name)}</span>
         ${renderFigure(row?.cases || 0, { editable: true, pack: `alloc:${wine.id}:${customer.id}` })}
         <button class="status ${status}" data-status="${wine.id}:${customer.id}" type="button">${status || 'set status'}</button>
@@ -435,9 +471,35 @@ function renderBoard(data, producer, wine) {
       </div>
     </article>
     <ul class="accounts">
-      ${accounts || '<li class="accounts-empty">No accounts allocated yet. Show empty accounts or add a customer.</li>'}
+      ${accounts || '<li class="accounts-empty">No accounts yet. Add a customer to start placing bottles.</li>'}
     </ul>
   `;
+}
+
+function remainingBottlesFor(wineId) {
+  if (!wineId) return 0;
+  const data = model();
+  const allot = data.allotments.get(wineId)?.cases || 0;
+  const allocated = allocatedForWine(wineId, data.allocations);
+  return Math.round((allot - allocated) * BOTTLES_PER_CASE);
+}
+
+function selectedCustomerIds() {
+  const data = model();
+  return data.customers.map((customer) => customer.id).filter((id) => state.selectedAccounts.has(id));
+}
+
+function syncDock() {
+  const ids = selectedCustomerIds();
+  const open = Boolean(state.wineId && ids.length);
+  allocDock.hidden = !open;
+  document.body.classList.toggle('has-dock', open);
+  if (!open) return;
+  const remaining = remainingBottlesFor(state.wineId);
+  const data = model();
+  const canMinus = ids.some((id) => bottlesOf(data.allocations.get(`${state.wineId}:${id}`)?.cases) > 0);
+  allocMinus.disabled = !canMinus;
+  allocSpread.disabled = remaining <= 0;
 }
 
 function render() {
@@ -449,6 +511,7 @@ function render() {
   renderWineNav(wines, producer);
   renderBoard(data, producer, wine);
   renderLists(data);
+  syncDock();
 }
 
 async function persistAllotment(wineId, patch) {
@@ -464,15 +527,59 @@ async function persistAllotment(wineId, patch) {
 }
 
 async function persistAllocation(wineId, customerId, patch) {
+  await persistAllocations(wineId, [{ customerId, ...patch }]);
+}
+
+async function persistAllocations(wineId, patches) {
+  if (!patches.length) return;
   const data = model();
-  const current = data.allocations.get(`${wineId}:${customerId}`) || { cases: 0, status: '' };
-  await save('month', {
-    op: 'allocation_set',
-    wineId,
-    customerId,
-    cases: patch.cases ?? current.cases,
-    status: patch.status ?? current.status,
+  const events = patches.map((patch) => {
+    const current = data.allocations.get(`${wineId}:${patch.customerId}`) || { cases: 0, status: '' };
+    return {
+      op: 'allocation_set',
+      wineId,
+      customerId: patch.customerId,
+      cases: patch.cases ?? current.cases,
+      status: patch.status ?? current.status,
+    };
   });
+  await saveMany('month', events);
+}
+
+function selectedAllocationPatches(deltaBottles) {
+  const wineId = state.wineId;
+  const ids = selectedCustomerIds();
+  if (!wineId || !ids.length) return [];
+  const data = model();
+  return ids.map((customerId) => {
+    const current = data.allocations.get(`${wineId}:${customerId}`);
+    const bottles = Math.max(0, bottlesOf(current?.cases) + deltaBottles);
+    return { customerId, cases: casesFromBottles(bottles) };
+  });
+}
+
+async function nudgeSelected(deltaBottles) {
+  const patches = selectedAllocationPatches(deltaBottles);
+  if (!patches.length) return;
+  await persistAllocations(state.wineId, patches);
+}
+
+async function spreadSelected() {
+  const wineId = state.wineId;
+  const ids = selectedCustomerIds();
+  if (!wineId || !ids.length) return;
+  const remaining = remainingBottlesFor(wineId);
+  if (remaining <= 0) return;
+  const data = model();
+  const base = Math.floor(remaining / ids.length);
+  let extra = remaining % ids.length;
+  const patches = ids.map((customerId) => {
+    const add = base + (extra > 0 ? 1 : 0);
+    if (extra > 0) extra -= 1;
+    const current = data.allocations.get(`${wineId}:${customerId}`);
+    return { customerId, cases: casesFromBottles(bottlesOf(current?.cases) + add) };
+  });
+  await persistAllocations(wineId, patches);
 }
 
 function nextStatus(current) {
@@ -510,11 +617,22 @@ function onBoardInput(event) {
 
 function onBoardClick(event) {
   const statusBtn = event.target.closest('[data-status]');
-  if (!statusBtn) return;
-  const [wineId, customerId] = statusBtn.dataset.status.split(':');
-  const data = model();
-  const current = data.allocations.get(`${wineId}:${customerId}`);
-  persistAllocation(wineId, customerId, { status: nextStatus(current?.status || '') });
+  if (statusBtn) {
+    const [wineId, customerId] = statusBtn.dataset.status.split(':');
+    const data = model();
+    const current = data.allocations.get(`${wineId}:${customerId}`);
+    persistAllocation(wineId, customerId, { status: nextStatus(current?.status || '') });
+    return;
+  }
+  if (event.target.closest('input, button')) return;
+  const account = event.target.closest('.account[data-customer]');
+  if (!account) return;
+  const id = account.dataset.customer;
+  if (state.selectedAccounts.has(id)) state.selectedAccounts.delete(id);
+  else state.selectedAccounts.add(id);
+  account.classList.toggle('is-selected', state.selectedAccounts.has(id));
+  account.setAttribute('aria-selected', String(state.selectedAccounts.has(id)));
+  syncDock();
 }
 
 async function loadMonth() {
@@ -847,11 +965,13 @@ async function addCatalogWine(row, allotment) {
 function bind() {
   document.getElementById('prevMonth').addEventListener('click', async () => {
     state.month = shiftMonth(state.month, -1);
+    state.selectedAccounts.clear();
     await loadMonth();
     render();
   });
   document.getElementById('nextMonth').addEventListener('click', async () => {
     state.month = shiftMonth(state.month, 1);
+    state.selectedAccounts.clear();
     await loadMonth();
     render();
   });
@@ -861,16 +981,21 @@ function bind() {
     if (!chip) return;
     state.producerId = chip.dataset.id;
     state.wineId = null;
+    state.selectedAccounts.clear();
     render();
   });
   wineNav.addEventListener('click', (event) => {
     const chip = event.target.closest('[data-id]');
     if (!chip) return;
+    if (chip.dataset.id !== state.wineId) state.selectedAccounts.clear();
     state.wineId = chip.dataset.id;
     render();
   });
   boardEl.addEventListener('input', onBoardInput);
   boardEl.addEventListener('click', onBoardClick);
+  document.getElementById('allocPlus').addEventListener('click', () => nudgeSelected(1));
+  allocMinus.addEventListener('click', () => nudgeSelected(-1));
+  allocSpread.addEventListener('click', spreadSelected);
   showEmptyBtn.addEventListener('click', () => {
     state.showEmpty = !state.showEmpty;
     showEmptyBtn.setAttribute('aria-pressed', String(state.showEmpty));

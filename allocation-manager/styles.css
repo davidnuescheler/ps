@@ -20,12 +20,19 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: clip;
+}
 body {
   font-family: var(--sans);
+  font-size: 16px;
   color: var(--ink);
   background: var(--paper);
   line-height: 1.45;
   min-height: 100svh;
+  overflow-x: clip;
 }
 
 body::before {
@@ -51,7 +58,8 @@ body::after {
 }
 
 h1, h2, h3, .serif { font-family: var(--serif); font-weight: 500; letter-spacing: -0.03em; }
-button, input, select { font: inherit; }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { touch-action: manipulation; }
 button { cursor: pointer; }
 a { color: inherit; }
 
@@ -154,8 +162,15 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  min-width: 0;
+  max-width: 100%;
 }
-.month-nav h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 300; }
+.month-nav h1 {
+  margin: 0;
+  min-width: 0;
+  font-size: clamp(1.4rem, 7vw, 2.6rem);
+  font-weight: 300;
+}
 .ghost {
   background: transparent;
   border: 1px solid var(--line);
@@ -185,8 +200,11 @@ a { color: inherit; }
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 0.4rem;
   margin-bottom: 1rem;
+  max-width: 100%;
 }
 .wine-nav { margin-top: -0.35rem; }
 .wine-nav:empty { display: none; }
@@ -397,6 +415,12 @@ a { color: inherit; }
   background: color-mix(in srgb, var(--foam) 80%, transparent);
   border: 1px solid var(--line);
   border-radius: 1rem;
+  cursor: pointer;
+}
+.account.is-selected {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, var(--foam));
+  box-shadow: inset 0 0 0 1px var(--ink);
 }
 .account-name {
   font-family: var(--serif);
@@ -452,6 +476,43 @@ a { color: inherit; }
 .over { color: var(--wine); font-weight: 600; }
 
 .row-actions { display: flex; gap: 0.5rem; margin-top: 0.9rem; flex-wrap: wrap; }
+
+.alloc-dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem;
+  background: var(--ink);
+  color: var(--foam);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+.alloc-dock[hidden] { display: none; }
+.alloc-dock button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+.alloc-dock button:hover:not(:disabled) { background: color-mix(in srgb, var(--foam) 14%, transparent); }
+.alloc-dock button:disabled { opacity: 0.35; }
+.alloc-dock #allocSpread {
+  padding: 0 1.05rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+body.has-dock .wrap { padding-bottom: 5.5rem; }
 .btn {
   display: inline-flex;
   align-items: center;
@@ -507,6 +568,8 @@ dialog {
   max-height: min(92vh, 840px);
   display: none;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 #wineDialog[open] { display: flex; }
 dialog::backdrop { background: rgba(22, 18, 16, 0.45); }
@@ -519,6 +582,7 @@ label { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; c
   border-bottom: 1px solid var(--line);
   background: transparent;
   padding: 0.55rem 0;
+  font-size: 16px;
 }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.4rem; }
@@ -574,7 +638,7 @@ label { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; c
   border: 0;
   background: transparent;
   padding: 0.28rem 0;
-  font: inherit;
+  font-size: 16px;
   color: var(--ink);
   outline: none;
 }
@@ -627,6 +691,7 @@ label { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; c
   font-family: var(--serif);
   font-size: 1.05rem;
   font-weight: 400;
+  overflow-wrap: anywhere;
 }
 .picker-meta {
   display: flex;
@@ -665,11 +730,77 @@ label { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; c
 }
 
 @media (max-width: 800px) {
-  .manage { grid-template-columns: 1fr; }
-  .overview-grid { flex-direction: column; gap: 1.4rem; }
-  .account {
-    grid-template-columns: 1fr auto;
+  .nav-bar,
+  .wrap {
+    width: calc(100% - 1.5rem);
   }
+  .wrap { margin: 1rem auto 2.5rem; }
+  .site-header {
+    padding-top: env(safe-area-inset-top);
+    height: calc(var(--header) + env(safe-area-inset-top));
+  }
+  .brand-name { font-size: 0.98rem; }
+  .toolbar { gap: 0.7rem; }
+  .overview {
+    padding: 1.2rem 1rem 1.1rem;
+  }
+  .overview-grid { flex-direction: column; gap: 1.2rem; }
+  .overview .figure-pack {
+    flex-wrap: wrap;
+    gap: 0.8rem 1.15rem;
+  }
+  .overview .figure-num,
+  .overview .figure-value {
+    font-size: clamp(2.2rem, 12vw, 3.4rem);
+  }
+  .account {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .account-name { overflow-wrap: anywhere; }
   .account .status { grid-column: 2; grid-row: 1; }
   .account .figure-pack { grid-column: 1 / -1; }
+  .row-actions .btn { min-height: 2.75rem; }
+  .manage { grid-template-columns: 1fr; }
+  dialog {
+    width: min(100% - 1.5rem, 440px);
+    margin: auto;
+    padding: 1.1rem;
+  }
+  #wineDialog {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    padding: calc(0.9rem + env(safe-area-inset-top)) 1rem calc(0.9rem + env(safe-area-inset-bottom));
+  }
+  #wineDialog .picker-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+  .picker-chip {
+    min-height: 2.4rem;
+    padding: 0.45rem 0.85rem;
+  }
+  .picker-search {
+    flex: 1 1 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
+  .picker-wine {
+    grid-template-columns: 0.55rem minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+  .picker-side {
+    grid-column: 2;
+    justify-items: start;
+    grid-template-columns: auto auto;
+    justify-content: start;
+    gap: 0.45rem 0.8rem;
+  }
+  .form-row { grid-template-columns: 1fr; }
+  .dialog-actions { flex-wrap: wrap; }
+  .dialog-actions .btn { min-height: 2.75rem; }
 }
