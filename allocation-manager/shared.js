@@ -654,7 +654,24 @@ export function bindMonthNav(onChange) {
   document.getElementById('nextMonth')?.addEventListener('click', () => onChange(1));
 }
 
+const SCREEN_VIEWPORT = 'width=device-width, initial-scale=1, viewport-fit=cover';
+const PRINT_VIEWPORT = 'width=816';
+
+function setViewport(content) {
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (meta) meta.setAttribute('content', content);
+}
+
+function bindPrintViewport() {
+  const apply = (isPrint) => setViewport(isPrint ? PRINT_VIEWPORT : SCREEN_VIEWPORT);
+  apply(window.matchMedia('print').matches);
+  window.addEventListener('beforeprint', () => apply(true));
+  window.addEventListener('afterprint', () => apply(false));
+  window.matchMedia('print').addEventListener('change', (event) => apply(event.matches));
+}
+
 export async function boot(reload) {
+  bindPrintViewport();
   bindChrome(reload);
   applyMonthFromUrl();
   const storedEmail = getEmail();
