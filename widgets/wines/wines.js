@@ -32,6 +32,31 @@ function originalSpan(text) {
   return span;
 }
 
+function wineMention(row) {
+  const vintage = String(row.Vintage || '').trim();
+  const wine = prettyName(row.Wine);
+  const producer = prettyName(row.Producer);
+  const size = String(row.Size || '').replace(/\s+/g, '').toLowerCase();
+  const magnum = /1\.5l|1500ml/.test(size) || /magnum/i.test(row.Wine || '');
+  const name = [vintage, wine].filter(Boolean).join(' ');
+  const extra = magnum && !/magnum/i.test(name) ? ' magnum' : '';
+  const who = producer ? ` from ${producer}` : '';
+  return `${name}${extra}${who}`.trim();
+}
+
+function inquiryText(row) {
+  const wine = wineMention(row) || 'this wine';
+  return `Hello — I’d like to inquire about ${wine}. Could you let me know if it’s available?`;
+}
+
+function fillInquiry(row) {
+  const field = document.querySelector('.contact-form textarea[name="note"]');
+  if (!field) return;
+  field.value = inquiryText(row);
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+  requestAnimationFrame(() => field.focus());
+}
+
 function buildCard(row, inquireHref) {
   const cat = wineCategory(row);
   const region = prettyName(row['Region/Sub Region']);
@@ -84,6 +109,9 @@ function buildCard(row, inquireHref) {
   inquire.className = 'inquire';
   inquire.href = inquireHref;
   inquire.textContent = 'Inquire';
+  inquire.addEventListener('click', () => {
+    fillInquiry(row);
+  });
   foot.append(priceEl, inquire);
 
   article.append(swatch, meta, title, producerEl, noteEl, foot);
@@ -102,7 +130,7 @@ export default async function decorate(widget) {
   const more = widget.querySelector('.wines-more');
   const moreBtn = more?.querySelector('button');
   const pageSize = parseInt(widget.dataset.pageSize, 10) || DEFAULT_PAGE_SIZE;
-  const inquireHref = widget.dataset.inquire || '#visit';
+  const inquireHref = widget.dataset.inquire || '#contact';
 
   let showAll = false;
 
